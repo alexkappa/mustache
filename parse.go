@@ -1,4 +1,5 @@
 // Copyright (c) 2014 Alex Kalyvitis
+
 package mustache
 
 import (
@@ -42,7 +43,7 @@ func (p *parser) readn(n int) ([]token, error) {
 // match of t. Similar to readn it will return an error if a tokenEOF was
 // returned by the lexer before a match was made.
 func (p *parser) readt(t tokenType) ([]token, error) {
-	tokens := make([]token, 0)
+	var tokens []token
 	for {
 		token := p.read()
 		tokens = append(tokens, token)
@@ -115,13 +116,13 @@ func (p *parser) errorf(t token, format string, v ...interface{}) error {
 
 // parse begins parsing based on tokens read from the lexer.
 func (p *parser) parse() ([]node, error) {
-	nodes := make([]node, 0)
-Loop:
+	var nodes []node
+loop:
 	for {
 		token := p.read()
 		switch token.typ {
 		case tokenEOF:
-			break Loop
+			break loop
 		case tokenError:
 			return nil, p.errorf(token, "unrecognized token")
 		case tokenText:

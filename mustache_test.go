@@ -1,8 +1,10 @@
 // Copyright (c) 2014 Alex Kalyvitis
+
 package mustache
 
 import (
 	"bytes"
+	"strings"
 
 	"testing"
 )
@@ -14,21 +16,21 @@ var tests = map[string]interface{}{
 }
 
 func TestTemplate(t *testing.T) {
-	// input := strings.NewReader("some text {{foo}} here")
-	// template := New()
-	// err := template.Parse(input)
-	// if err != nil {
-	// 	t.Error(err)
-	// }
-	// var output bytes.Buffer
-	// err = template.Render(&output, map[string]string{"foo": "bar"})
-	// if err != nil {
-	// 	t.Error(err)
-	// }
-	// expected := "some text bar here"
-	// if output.String() != expected {
-	// 	t.Errorf("expected %q got %q", expected, output.String())
-	// }
+	input := strings.NewReader("some text {{foo}} here")
+	template := New()
+	err := template.Parse(input)
+	if err != nil {
+		t.Error(err)
+	}
+	var output bytes.Buffer
+	err = template.Render(&output, map[string]string{"foo": "bar"})
+	if err != nil {
+		t.Error(err)
+	}
+	expected := "some text bar here"
+	if output.String() != expected {
+		t.Errorf("expected %q got %q", expected, output.String())
+	}
 }
 
 func TestParseTree(t *testing.T) {

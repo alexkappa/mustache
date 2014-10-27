@@ -1,6 +1,4 @@
-// Copyright 2011 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright (c) 2014 Alex Kalyvitis
 
 package mustache
 
@@ -38,29 +36,32 @@ var lexerTests = []struct {
 		"foo {{bar}} baz {{=| |=}} |foo| |={{ }}=| {{bar}}",
 		"{{",
 		"}}",
-		[]token{},
+		[]token{
+			{typ: tokenText},
+			{typ: tokenLeftDelim},
+			{typ: tokenIdentifier},
+			{typ: tokenRightDelim},
+			{typ: tokenText},
+			{typ: tokenText},
+			{typ: tokenLeftDelim},
+			{typ: tokenIdentifier},
+			{typ: tokenRightDelim},
+			{typ: tokenText},
+			{typ: tokenText},
+			{typ: tokenLeftDelim},
+			{typ: tokenIdentifier},
+			{typ: tokenRightDelim},
+			{typ: tokenEOF},
+		},
 	},
 }
 
 func TestLexer(t *testing.T) {
 	for _, test := range lexerTests {
-		t.Logf("test: %q\n", test.name)
-		lex := newLexer(test.template, test.leftDelim, test.rightDelim)
-		// i := 0
-		for {
-			token := lex.token() // get the next token from the lexer
-
-			// if token.typ != test.tokens[i].typ {
-			// 	t.Errorf("parse error on test %q\n", test.name)
-			// 	t.Errorf("expected token %q but instead got %q\n", token.typ, test.tokens[i].typ)
-			// }
-			// i++
-
-			t.Logf("%-15s: %q\n", token.typ, token.val)
-
-			// the lexer emitted an EOF or error
-			if token.typ <= tokenEOF {
-				break
+		lexer := newLexer(test.template, test.leftDelim, test.rightDelim)
+		for token, i := lexer.token(), 0; token.typ <= tokenEOF; token, i = lexer.token(), i+1 {
+			if token.typ != test.tokens[i].typ {
+				t.Errorf("unexpected token %q, expected %q", token.typ, test.tokens[i].typ)
 			}
 		}
 	}

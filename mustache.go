@@ -1,4 +1,5 @@
 // Copyright (c) 2014 Alex Kalyvitis
+
 package mustache
 
 import (
@@ -81,8 +82,8 @@ func (n commentNode) render(t *Template, w io.Writer, c ...interface{}) error {
 	return nil
 }
 
-func (c commentNode) String() string {
-	return fmt.Sprintf("comment_node: %q", string(c))
+func (n commentNode) String() string {
+	return fmt.Sprintf("comment_node: %q", string(n))
 }
 
 func (n *sectionNode) String() string {
@@ -122,15 +123,11 @@ func lookup(name string, v ...interface{}) (interface{}, bool) {
 			mapValue := r.MapIndex(reflect.ValueOf(name))
 			if mapValue.IsValid() {
 				return mapValue.Interface(), true
-			} else {
-				continue
 			}
 		case reflect.Struct:
 			fieldValue := r.FieldByName(name)
 			if fieldValue.IsValid() {
 				return fieldValue.Interface(), true
-			} else {
-				continue
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			return r.Int(), true
@@ -169,8 +166,8 @@ func New() *Template {
 	return &Template{make([]node, 0), make(map[string]*Template)}
 }
 
-// The Parse function parses a stream of bytes read from r and creates a parse
-// tree that represents the template.
+// Parse parses a stream of bytes read from r and creates a parse tree that
+// represents the template.
 func (t *Template) Parse(r io.Reader) error {
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -191,13 +188,13 @@ func (t *Template) ParseString(s string) error {
 	return t.Parse(strings.NewReader(s))
 }
 
-// ParseString is a helper function that uses a byte array as input.
+// ParseBytes is a helper function that uses a byte array as input.
 func (t *Template) ParseBytes(b []byte) error {
 	return t.Parse(bytes.NewReader(b))
 }
 
-// The Render function walks through the template's parse tree and writes the
-// output to w replacing the values found in context.
+// Render walks through the template's parse tree and writes the output to w
+// replacing the values found in context.
 func (t *Template) Render(w io.Writer, context interface{}) error {
 	for _, elem := range t.elems {
 		err := elem.render(t, w, context)
@@ -215,22 +212,21 @@ func (t *Template) RenderString(context interface{}) (string, error) {
 	return b.String(), err
 }
 
-// RenderString is a helper function that renders the template as a byte slice.
+// RenderBytes is a helper function that renders the template as a byte slice.
 func (t *Template) RenderBytes(context interface{}) ([]byte, error) {
 	var b *bytes.Buffer
 	err := t.Render(b, context)
 	return b.Bytes(), err
 }
 
-// The Parse function wraps the creation of a new template and parsing a stream
-// of bytes from r.
+// Parse wraps the creation of a new template and parsing from r in one go.
 func Parse(r io.Reader) (*Template, error) {
 	t := New()
 	err := t.Parse(r)
 	return t, err
 }
 
-// The Render function wraps the parsing and rendering into a single function.
+// Render wraps the parsing and rendering into a single function.
 func Render(r io.Reader, w io.Writer, context interface{}) error {
 	t, err := Parse(r)
 	if err != nil {
