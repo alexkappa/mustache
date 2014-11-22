@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Alex Kalyvitis.
+// Copyright (c) 2014 Alex Kalyvitis
 
 package mustache
 
