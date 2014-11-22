@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Alex Kalyvitis
+// Copyright (c) 2014 Alex Kalyvitis.
 
 package mustache
 
@@ -43,7 +43,7 @@ type varNode struct {
 func (n *varNode) render(t *Template, w io.Writer, c ...interface{}) error {
 	if v, ok := lookup(n.name, c...); ok {
 		if n.escape {
-			v = template.HTMLEscapeString(v.(string))
+			v = template.HTMLEscapeString(fmt.Sprintf("%v", v))
 		}
 		print(w, v)
 		return nil
@@ -109,7 +109,7 @@ type partialNode struct {
 
 func (p *partialNode) render(t *Template, w io.Writer, c ...interface{}) error {
 	if partial, ok := t.partials[p.name]; ok {
-		partial.Render(w, c)
+		partial.Render(w, c...)
 	}
 	return nil
 }
@@ -127,7 +127,7 @@ func lookup(name string, v ...interface{}) (interface{}, bool) {
 		case reflect.Struct:
 			fieldValue := r.FieldByName(name)
 			if fieldValue.IsValid() {
-				return fieldValue.Interface(), true
+				return fieldValue.Interface(), truth(fieldValue.Interface())
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			return r.Int(), true
@@ -138,6 +138,17 @@ func lookup(name string, v ...interface{}) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+func truth(v interface{}) bool {
+	switch t := v.(type) {
+	case bool:
+		return t
+	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
+	case float32:
+		return t > 0
+	}
+	return false
 }
 
 // The print function is able to format the interface v and write it to w using
@@ -155,15 +166,67 @@ func print(w io.Writer, v interface{}) {
 	}
 }
 
+// The Option type describes functional options used with Templates. Check out
+// Dave Cheney's talk on functional options http://bit.ly/1x9WWPi.
+type Option func(*Template)
+
+// Name sets the name of the template.
+func Name(n string) Option {
+	return func(t *Template) {
+		t.name = n
+	}
+}
+
+// Delimiters sets the start and end delimiters of the template.
+func Delimiters(start, end string) Option {
+	return func(t *Template) {
+		t.startDelim = start
+		t.endDelim = end
+	}
+}
+
+// Partial sets p as a partial to the template. It is important to set the name
+// of p so that it may be looked up by the parent template.
+func Partial(p *Template) Option {
+	return func(t *Template) {
+		t.partials[p.name] = p
+	}
+}
+
+// Errors enables missing variable errors.
+func Errors() Option {
+	return func(t *Template) {
+		t.silentMiss = false
+	}
+}
+
 // The Template type represents a template and its components.
 type Template struct {
-	elems    []node
-	partials map[string]*Template
+	name       string
+	elems      []node
+	partials   map[string]*Template
+	startDelim string
+	endDelim   string
+	silentMiss bool
 }
 
 // New returns a new Template instance.
-func New() *Template {
-	return &Template{make([]node, 0), make(map[string]*Template)}
+func New(options ...Option) *Template {
+	t := &Template{
+		elems:      make([]node, 0),
+		partials:   make(map[string]*Template),
+		startDelim: "{{",
+		endDelim:   "}}",
+		silentMiss: true,
+	}
+	t.Option(options...)
+	return t
+}
+
+func (t *Template) Option(options ...Option) {
+	for _, optionFn := range options {
+		optionFn(t)
+	}
 }
 
 // Parse parses a stream of bytes read from r and creates a parse tree that
@@ -173,7 +236,7 @@ func (t *Template) Parse(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	l := newLexer(string(b), "{{", "}}")
+	l := newLexer(string(b), t.startDelim, t.endDelim)
 	p := newParser(l)
 	elems, err := p.parse()
 	if err != nil {
@@ -195,27 +258,29 @@ func (t *Template) ParseBytes(b []byte) error {
 
 // Render walks through the template's parse tree and writes the output to w
 // replacing the values found in context.
-func (t *Template) Render(w io.Writer, context interface{}) error {
+func (t *Template) Render(w io.Writer, context ...interface{}) error {
 	for _, elem := range t.elems {
-		err := elem.render(t, w, context)
+		err := elem.render(t, w, context...)
 		if err != nil {
-			return err
+			if !t.silentMiss {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
 // RenderString is a helper function that renders the template as a string.
-func (t *Template) RenderString(context interface{}) (string, error) {
+func (t *Template) RenderString(context ...interface{}) (string, error) {
 	b := &bytes.Buffer{}
-	err := t.Render(b, context)
+	err := t.Render(b, context...)
 	return b.String(), err
 }
 
 // RenderBytes is a helper function that renders the template as a byte slice.
-func (t *Template) RenderBytes(context interface{}) ([]byte, error) {
+func (t *Template) RenderBytes(context ...interface{}) ([]byte, error) {
 	var b *bytes.Buffer
-	err := t.Render(b, context)
+	err := t.Render(b, context...)
 	return b.Bytes(), err
 }
 
@@ -227,10 +292,10 @@ func Parse(r io.Reader) (*Template, error) {
 }
 
 // Render wraps the parsing and rendering into a single function.
-func Render(r io.Reader, w io.Writer, context interface{}) error {
+func Render(r io.Reader, w io.Writer, context ...interface{}) error {
 	t, err := Parse(r)
 	if err != nil {
 		return err
 	}
-	return t.Render(w, context)
+	return t.Render(w, context...)
 }

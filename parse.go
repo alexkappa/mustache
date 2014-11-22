@@ -124,11 +124,17 @@ loop:
 		case tokenEOF:
 			break loop
 		case tokenError:
-			return nil, p.errorf(token, "unrecognized token")
+			return nil, p.errorf(token, "%s", token.val)
 		case tokenText:
 			nodes = append(nodes, textNode(token.val))
 		case tokenLeftDelim:
 			node, err := p.parseTag()
+			if err != nil {
+				return nodes, err
+			}
+			nodes = append(nodes, node)
+		case tokenRawStart:
+			node, err := p.parseRawTag()
 			if err != nil {
 				return nodes, err
 			}
@@ -144,24 +150,46 @@ func (p *parser) parseTag() (node, error) {
 	token := p.read()
 	switch token.typ {
 	case tokenIdentifier:
-		return p.parseVar(token)
+		return p.parseVar(token, true)
+	case tokenRawStart:
+		return p.parseRawTag()
+	case tokenRawAlt:
+		return p.parseVar(p.read(), false)
 	case tokenComment:
 		return p.parseComment()
 	case tokenSectionInverse:
 		return p.parseSection(true)
 	case tokenSectionStart:
 		return p.parseSection(false)
+	case tokenPartial:
+		return p.parsePartial()
 	}
-	return nil, p.errorf(token, "unreachable code")
+	return nil, p.errorf(token, "unreachable code %s", token)
+}
+
+// parseRawTag parses a simple variable tag. It is assumed that the read from
+// the parser should return an identifier.
+func (p *parser) parseRawTag() (node, error) {
+	t := p.read()
+	if t.typ != tokenIdentifier {
+		return nil, p.errorf(t, "unexpected token %s", t)
+	}
+	if next := p.read(); next.typ != tokenRawEnd {
+		return nil, p.errorf(t, "unexpected token %s", t)
+	}
+	if next := p.read(); next.typ != tokenRightDelim {
+		return nil, p.errorf(t, "unexpected token %s", t)
+	}
+	return &varNode{name: t.val, escape: false}, nil
 }
 
 // parseVar parses a simple variable tag. It is assumed that the read from the
 // parser should return an identifier.
-func (p *parser) parseVar(ident token) (node, error) {
+func (p *parser) parseVar(ident token, escape bool) (node, error) {
 	if t := p.read(); t.typ != tokenRightDelim {
 		return nil, p.errorf(t, "unexpected token %s", t)
 	}
-	return &varNode{name: ident.val, escape: true}, nil
+	return &varNode{name: ident.val, escape: escape}, nil
 }
 
 // parseComment parses a comment block. It is assumed that the next read should
@@ -184,7 +212,7 @@ func (p *parser) parseComment() (node, error) {
 }
 
 // parseSection parses a section block. It is assumed that the next read should
-// return a t_section token
+// return a t_section token.
 func (p *parser) parseSection(inverse bool) (node, error) {
 	t := p.read()
 	if t.typ != tokenIdentifier {
@@ -214,6 +242,19 @@ func (p *parser) parseSection(inverse bool) (node, error) {
 		elems:    nodes,
 	}
 	return section, nil
+}
+
+// parsePartial parses a partial block. It is assumed that the next read should
+// return a t_ident token.
+func (p *parser) parsePartial() (node, error) {
+	t := p.read()
+	if t.typ != tokenIdentifier {
+		return nil, p.errorf(t, "unexpected token %s", t)
+	}
+	if next := p.read(); next.typ != tokenRightDelim {
+		return nil, p.errorf(t, "unexpected token %s", t)
+	}
+	return &partialNode{t.val}, nil
 }
 
 // newParser creates a new parser using the suppliad lexer.

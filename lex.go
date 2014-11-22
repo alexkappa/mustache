@@ -19,9 +19,9 @@ type token struct {
 }
 
 func (i token) String() string {
-	if len(i.val) > 10 {
-		return fmt.Sprintf(`%s:"%.10s..."`, i.typ, i.val)
-	}
+	// if len(i.val) > 10 {
+	// 	return fmt.Sprintf(`%s:"%.10s..."`, i.typ, i.val)
+	// }
 	return fmt.Sprintf("%s:%q", i.typ, i.val)
 }
 
@@ -124,8 +124,8 @@ func (l *lexer) emit(t tokenType) {
 	l.tokens <- token{
 		t,
 		l.input[l.start:l.pos],
-		l.lineNumber(),
-		l.columnNumber(),
+		l.lineNum(),
+		l.columnNum(),
 	}
 	l.start = l.pos
 }
@@ -135,14 +135,14 @@ func (l *lexer) ignore() {
 	l.start = l.pos
 }
 
-// lineNumber reports which line we're on. Doing it this way
+// lineNum reports which line we're on. Doing it this way
 // means we don't have to worry about peek double counting.
-func (l *lexer) lineNumber() int {
+func (l *lexer) lineNum() int {
 	return 1 + strings.Count(l.input[:l.pos], "\n")
 }
 
-// columnNumber reports the character of the current line we're on.
-func (l *lexer) columnNumber() int {
+// columnNum reports the character of the current line we're on.
+func (l *lexer) columnNum() int {
 	if lf := strings.LastIndex(l.input[:l.pos], "\n"); lf != -1 {
 		return len(l.input[lf+1 : l.pos])
 	}
@@ -155,8 +155,8 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	l.tokens <- token{
 		tokenError,
 		fmt.Sprintf(format, args...),
-		l.lineNumber(),
-		l.columnNumber(),
+		l.lineNum(),
+		l.columnNum(),
 	}
 	return nil
 }
@@ -295,19 +295,46 @@ func (l *lexer) lexComment() stateFn {
 // lexSetDelim scans a set of set delimiter tags and replaces the lexers left
 // and right delimiters to new values.
 func (l *lexer) lexSetDelim() stateFn {
-	i := strings.Index(l.input[l.pos:], "="+l.rightDelim)
+	end := "=" + l.rightDelim
+	i := strings.Index(l.input[l.pos:], end)
 	if i < 0 {
 		return l.errorf("unclosed tag")
 	}
-	delims := strings.Split(l.input[l.pos:l.pos+i], " ")
-	if len(delims) != 2 {
+	delims := strings.Split(l.input[l.pos:l.pos+i], " ") // " | | "
+	if len(delims) < 2 {
 		l.errorf("set delimiters should be separated by a space")
 	}
-	l.pos += i + len("="+l.rightDelim)
+	delimFn := leftFn
+	for _, delim := range delims {
+		if delim != "" {
+			if delimFn != nil {
+				delimFn = delimFn(l, delim)
+			}
+		}
+	}
+	l.pos += i + len(end)
 	l.ignore()
-	l.leftDelim = delims[0]
-	l.rightDelim = delims[1]
 	return l.lexText
+}
+
+// delimFn is a self referencing function which helps with setting the right
+// delimiter in the right order, and if too many delimiters are present an error
+// is emitted
+type delimFn func(l *lexer, s string) delimFn
+
+func leftFn(l *lexer, s string) delimFn {
+	l.leftDelim = s
+	return rightFn
+}
+
+func rightFn(l *lexer, s string) delimFn {
+	l.rightDelim = s
+	return errorFn
+}
+
+func errorFn(l *lexer, s string) delimFn {
+	l.errorf("too many delimiters %s", s)
+	return nil
 }
 
 // newLexer creates a new scanner for the input string.
