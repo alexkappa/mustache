@@ -67,23 +67,24 @@ type sectionNode struct {
 }
 
 func (n *sectionNode) render(t *Template, w io.Writer, c ...interface{}) error {
-	if v, ok := lookup(n.name, c...); ok {
+	elemFn := func(v ...interface{}) {
 		for _, elem := range n.elems {
-			elem.render(t, w, append(c, v)...)
+			elem.render(t, w, append(v, c...)...)
+		}
+	}
+	if v, ok := lookup(n.name, c...); ok {
+		r := reflect.ValueOf(v)
+		switch r.Kind() {
+		case reflect.Slice:
+			for i := 0; i < r.Len(); i++ {
+				elemFn(r.Index(i).Interface())
+			}
+		default:
+			elemFn(v)
 		}
 		return nil
 	}
 	return fmt.Errorf("failed to lookup %s", n.name)
-}
-
-type commentNode string
-
-func (n commentNode) render(t *Template, w io.Writer, c ...interface{}) error {
-	return nil
-}
-
-func (n commentNode) String() string {
-	return fmt.Sprintf("comment_node: %q", string(n))
 }
 
 func (n *sectionNode) String() string {
@@ -103,6 +104,19 @@ func (n *sectionNode) String() string {
 	return buf.String()
 }
 
+// The commentNode type is a part of the template wich gets ignored. Perhaps it
+// can be optionally enabled to print comments.
+type commentNode string
+
+func (n commentNode) render(t *Template, w io.Writer, c ...interface{}) error {
+	return nil
+}
+
+func (n commentNode) String() string {
+	return fmt.Sprintf("comment_node: %q", string(n))
+}
+
+// The partialNode type represents a named partial template.
 type partialNode struct {
 	name string
 }
@@ -118,51 +132,58 @@ func (p *partialNode) render(t *Template, w io.Writer, c ...interface{}) error {
 func lookup(name string, v ...interface{}) (interface{}, bool) {
 	for _, i := range v {
 		r := reflect.ValueOf(i)
+		if name == "." {
+			return i, truth(r)
+		}
 		switch r.Kind() {
 		case reflect.Map:
 			mapValue := r.MapIndex(reflect.ValueOf(name))
 			if mapValue.IsValid() {
-				return mapValue.Interface(), true
+				return mapValue.Interface(), truth(mapValue)
 			}
 		case reflect.Struct:
 			fieldValue := r.FieldByName(name)
 			if fieldValue.IsValid() {
-				return fieldValue.Interface(), truth(fieldValue.Interface())
+				return fieldValue.Interface(), truth(fieldValue)
 			}
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return r.Int(), true
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return r.Uint(), true
-		case reflect.String:
-			return r.String(), true
 		}
 	}
 	return nil, false
 }
 
-func truth(v interface{}) bool {
-	switch t := v.(type) {
-	case bool:
-		return t
-	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
-	case float32:
-		return t > 0
+func truth(r reflect.Value) bool {
+	switch r.Kind() {
+	case reflect.Array, reflect.Slice:
+		return r.Len() > 0
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return r.Int() > 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return r.Uint() > 0
+	case reflect.String:
+		return r.String() != ""
+	case reflect.Bool:
+		return r.Bool()
+	default:
+		return r.Interface() != nil
 	}
-	return false
 }
 
 // The print function is able to format the interface v and write it to w using
 // the best possible formatting flags.
 func print(w io.Writer, v interface{}) {
-	switch v.(type) {
-	case string:
-		fmt.Fprintf(w, "%s", v)
-	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
-		fmt.Fprintf(w, "%d", v)
-	case float32, float64:
-		fmt.Fprintf(w, "%f", v)
-	default:
-		fmt.Fprintf(w, "%v", v)
+	if s, ok := v.(fmt.Stringer); ok {
+		fmt.Fprint(w, s.String())
+	} else {
+		switch v.(type) {
+		case string:
+			fmt.Fprintf(w, "%s", v)
+		case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
+			fmt.Fprintf(w, "%d", v)
+		case float32, float64:
+			fmt.Fprintf(w, "%f", v)
+		default:
+			fmt.Fprintf(w, "%v", v)
+		}
 	}
 }
 

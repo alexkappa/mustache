@@ -59,6 +59,24 @@ func (p *parser) readt(t tokenType) ([]token, error) {
 	return tokens, fmt.Errorf("token %q not found", t)
 }
 
+// readv returns the tokens starting from the current position until the first
+// match of t. A match is made only of t.typ and t.val are equal to the examined
+// token.
+func (p *parser) readv(t token) ([]token, error) {
+	var tokens []token
+	for {
+		read, err := p.readt(t.typ)
+		tokens = append(tokens, read...)
+		if err != nil {
+			return tokens, err
+		}
+		if len(read) > 0 && read[len(read)-1].val == t.val {
+			break
+		}
+	}
+	return tokens, nil
+}
+
 // peek returns the next token without advancing the cursor. Consecutive calls
 // of peek would result in the same token being retuned. To advance the cursor,
 // a read must be made.
@@ -221,18 +239,33 @@ func (p *parser) parseSection(inverse bool) (node, error) {
 	if next := p.read(); next.typ != tokenRightDelim {
 		return nil, p.errorf(t, "unexpected token %s", t)
 	}
-	var buf []token
+	var (
+		tokens []token
+		stack  int = 1
+	)
 	for {
-		nodes, err := p.readt(tokenSectionEnd)
+		read, err := p.readv(t)
 		if err != nil {
 			return nil, err
 		}
-		buf = append(buf, nodes[:len(nodes)-2]...)
-		if peek := p.peek(); peek.typ == tokenIdentifier && peek.val == t.val {
+		tokens = append(tokens, read...)
+		if len(read) > 1 {
+			// Check the token that preceeded the matching identifier. For
+			// section start and inverse tokens we increase the stack, otherwise
+			// decrease.
+			tt := read[len(read)-2]
+			switch {
+			case tt.typ == tokenSectionStart || tt.typ == tokenSectionInverse:
+				stack++
+			case tt.typ == tokenSectionEnd:
+				stack--
+			}
+		}
+		if stack == 0 {
 			break
 		}
 	}
-	nodes, err := subParser(buf).parse()
+	nodes, err := subParser(tokens[:len(tokens)-3]).parse()
 	if err != nil {
 		return nil, err
 	}
