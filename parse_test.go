@@ -23,13 +23,13 @@ var parserTests = []struct {
 		"foo French Beer Factory baz ",
 	},
 	{
-		"this will {{^foo}}not{{/foo}} be rendered",
+		"this will{{^foo}}not{{/foo}} be rendered",
 		map[string]interface{}{"foo": true},
-		"this will not be rendered",
+		"this will be rendered",
 	},
 	{
 		"{{#list}}({{.}}){{/list}}",
-		[]string{"a", "b", "c", "d", "e"},
+		map[string][]string{"list": {"a", "b", "c", "d", "e"}},
 		"(a)(b)(c)(d)(e)",
 	},
 }

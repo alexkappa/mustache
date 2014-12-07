@@ -72,7 +72,8 @@ func (n *sectionNode) render(t *Template, w io.Writer, c ...interface{}) error {
 			elem.render(t, w, append(v, c...)...)
 		}
 	}
-	if v, ok := lookup(n.name, c...); ok {
+	v, ok := lookup(n.name, c...)
+	if ok != n.inverted {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {
 		case reflect.Slice:
@@ -128,46 +129,6 @@ func (p *partialNode) render(t *Template, w io.Writer, c ...interface{}) error {
 	return nil
 }
 
-// The lookup function searches for name inside the v slice using reflection.
-func lookup(name string, v ...interface{}) (interface{}, bool) {
-	for _, i := range v {
-		r := reflect.ValueOf(i)
-		if name == "." {
-			return i, truth(r)
-		}
-		switch r.Kind() {
-		case reflect.Map:
-			mapValue := r.MapIndex(reflect.ValueOf(name))
-			if mapValue.IsValid() {
-				return mapValue.Interface(), truth(mapValue)
-			}
-		case reflect.Struct:
-			fieldValue := r.FieldByName(name)
-			if fieldValue.IsValid() {
-				return fieldValue.Interface(), truth(fieldValue)
-			}
-		}
-	}
-	return nil, false
-}
-
-func truth(r reflect.Value) bool {
-	switch r.Kind() {
-	case reflect.Array, reflect.Slice:
-		return r.Len() > 0
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return r.Int() > 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return r.Uint() > 0
-	case reflect.String:
-		return r.String() != ""
-	case reflect.Bool:
-		return r.Bool()
-	default:
-		return r.Interface() != nil
-	}
-}
-
 // The print function is able to format the interface v and write it to w using
 // the best possible formatting flags.
 func print(w io.Writer, v interface{}) {
@@ -180,7 +141,7 @@ func print(w io.Writer, v interface{}) {
 		case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 			fmt.Fprintf(w, "%d", v)
 		case float32, float64:
-			fmt.Fprintf(w, "%f", v)
+			fmt.Fprintf(w, "%g", v)
 		default:
 			fmt.Fprintf(w, "%v", v)
 		}

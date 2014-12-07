@@ -60,10 +60,10 @@ func TestParseTree(t *testing.T) {
 		}
 	}
 
-	expected := `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin commodo viverra elit 0.110000.`
+	expected := `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin commodo viverra elit 0.11.`
 
 	if expected != b.String() {
-		t.Errorf("output didn't match. expected %s got %s.")
+		t.Errorf("output didn't match. expected %q got %q.", expected, b.String())
 		t.Log(b.String())
 	}
 }

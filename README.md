@@ -1,13 +1,17 @@
 # Overview
 
 This is an implementation of the mustache templating language in Go. It is
-inspired by [hoisie/mustache](https://github.com/hoisie/mustache) but it's not a fork. It is also inspired by Rob Pike's talk on [lexical scanning in Go](http://rspace.googlecode.com/hg/slide/lex.html). For more information on mustache check the official documentation [here](http://mustache.github.io/).
+inspired by [hoisie/mustache](https://github.com/hoisie/mustache) however it's not a fork, rather a re-implementation with an improved API, support for `io.Writer` and `io.Reader` and template parsing using a lexer and parser.
+
+It is built using lexing techniques from Rob Pike's talk on [lexical scanning in Go](http://rspace.googlecode.com/hg/slide/lex.html), and functional options as described by the same author in the blog post on [Self-referential functions and the design of options](http://commandcenter.blogspot.nl/2014/01/self-referential-functions-and-design.html).
+
+For more information on mustache check the official documentation [here](http://mustache.github.io/).
 
 **Warning:** as of the time of this writing, not all tests pass and this release is not thoroughly tested and verified. Use with caution!
 
 # Installation
 
-Install as usual with `go get github.com/alexkappa/go-mustache`.
+Install with `go get github.com/alexkappa/go-mustache`.
 
 # Documentation
 
@@ -39,8 +43,8 @@ RenderBytes(context interface{}) ([]byte, error)
 
 # Tests
 
-To run the tests make sure you checked out the git submodules (which include the specification tests), and run `go test`.
+Run `go test` as usual. If you want to run the spec tests against this package, make sure you've checked out the specs submodule. Otherwise spec tests will be skipped.
 
 # Contributing
 
-Any sort of contribution is more than welcome.
+If you would like to contribute, head on to the [issues](https://github.com/alexkappa/go-mustache/issues) page for tasks that need help.
