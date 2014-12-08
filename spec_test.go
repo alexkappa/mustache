@@ -83,7 +83,7 @@ func testSpec(t *testing.T, s Spec) {
 		if err != nil {
 			t.Fatalf("%sRender failed on test %q: %q", buf, test.Name, err)
 		}
-		buf.WriteString(fmt.Sprintf("Tree    : %#v\n", template.elems))
+		buf.WriteString(fmt.Sprintf("Tree    : %+v\n", template.elems))
 		buf.WriteString(fmt.Sprintf("Expected: %q\n", test.Expected))
 		buf.WriteString(fmt.Sprintf("Have    : %q\n", output))
 		if output != test.Expected {
