@@ -30,7 +30,7 @@ func (n textNode) render(t *Template, w io.Writer, c ...interface{}) error {
 }
 
 func (n textNode) String() string {
-	return fmt.Sprintf("text_node: %q", string(n))
+	return fmt.Sprintf("[text: %q]", string(n))
 }
 
 // The varNode type represents a part of the template that needs to be replaced
@@ -52,10 +52,7 @@ func (n *varNode) render(t *Template, w io.Writer, c ...interface{}) error {
 }
 
 func (n *varNode) String() string {
-	if n.escape {
-		return fmt.Sprintf("var_node: {{%s}}", n.name)
-	}
-	return fmt.Sprintf("var_node: {{{%s}}}", n.name)
+	return fmt.Sprintf("[var: %q escaped: %t]", n.name, n.escape)
 }
 
 // The sectionNode type is a complex node which recursively renders its child
@@ -76,9 +73,13 @@ func (n *sectionNode) render(t *Template, w io.Writer, c ...interface{}) error {
 	if ok != n.inverted {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {
-		case reflect.Slice:
-			for i := 0; i < r.Len(); i++ {
-				elemFn(r.Index(i).Interface())
+		case reflect.Slice, reflect.Array:
+			if r.Len() > 0 {
+				for i := 0; i < r.Len(); i++ {
+					elemFn(r.Index(i).Interface())
+				}
+			} else {
+				elemFn(v)
 			}
 		default:
 			elemFn(v)
@@ -89,20 +90,7 @@ func (n *sectionNode) render(t *Template, w io.Writer, c ...interface{}) error {
 }
 
 func (n *sectionNode) String() string {
-	var buf bytes.Buffer
-	buf.WriteString("section_node: {{")
-	if n.inverted {
-		buf.WriteByte('^')
-	} else {
-		buf.WriteByte('#')
-	}
-	buf.WriteString(n.name)
-	buf.WriteString("}}")
-	for _, elem := range n.elems {
-		buf.WriteString(fmt.Sprintf("%s", elem))
-	}
-	buf.WriteString(fmt.Sprintf("{{/%s}} ", n.name))
-	return buf.String()
+	return fmt.Sprintf("[section: %q inv: %t elems: %s]", n.name, n.inverted, n.elems)
 }
 
 // The commentNode type is a part of the template wich gets ignored. Perhaps it
@@ -114,7 +102,7 @@ func (n commentNode) render(t *Template, w io.Writer, c ...interface{}) error {
 }
 
 func (n commentNode) String() string {
-	return fmt.Sprintf("comment_node: %q", string(n))
+	return fmt.Sprintf("[comment: %q]", string(n))
 }
 
 // The partialNode type represents a named partial template.
@@ -127,6 +115,10 @@ func (p *partialNode) render(t *Template, w io.Writer, c ...interface{}) error {
 		partial.Render(w, c...)
 	}
 	return nil
+}
+
+func (p *partialNode) String() string {
+	return fmt.Sprintf("[partial: %s]", p.name)
 }
 
 // The print function is able to format the interface v and write it to w using
