@@ -70,6 +70,7 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 // Zero values are considered falsy. For example an empty string, the integer 0
 // and so on are all considered falsy.
 func truth(r reflect.Value) bool {
+out:
 	switch r.Kind() {
 	case reflect.Array, reflect.Slice:
 		return r.Len() > 0
@@ -81,6 +82,9 @@ func truth(r reflect.Value) bool {
 		return r.String() != ""
 	case reflect.Bool:
 		return r.Bool()
+	case reflect.Ptr, reflect.Interface:
+		r = r.Elem()
+		goto out
 	default:
 		return r.Interface() != nil
 	}

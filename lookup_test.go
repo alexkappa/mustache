@@ -2,7 +2,10 @@
 
 package mustache
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestSimpleLookup(t *testing.T) {
 	for _, test := range []struct {
@@ -57,11 +60,30 @@ func TestSimpleLookup(t *testing.T) {
 		for _, assertion := range test.assertions {
 			value, truth := lookup(assertion.name, test.context)
 			if value != assertion.value {
-				t.Errorf("Unexpected value %q != %q", value, assertion.value)
+				t.Errorf("Unexpected value %v != %v", value, assertion.value)
 			}
 			if truth != assertion.truth {
 				t.Errorf("Unexpected truth %t != %t", truth, assertion.truth)
 			}
+		}
+	}
+}
+
+func TestTruth(t *testing.T) {
+	for _, test := range []struct {
+		input    interface{}
+		expected bool
+	}{
+		{"abc", true},
+		{"", false},
+		{123, true},
+		{0, false},
+		{true, true},
+		{false, false},
+	} {
+		truth := truth(reflect.ValueOf(test.input))
+		if truth != test.expected {
+			t.Errorf("Unexpected truth %t != %t", truth, test.expected)
 		}
 	}
 }
