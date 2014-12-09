@@ -18,10 +18,8 @@ type token struct {
 	col  int
 }
 
+// String satisfies the fmt.Stringer interface making it easier to print tokens.
 func (i token) String() string {
-	// if len(i.val) > 10 {
-	// 	return fmt.Sprintf(`%s:"%.10s..."`, i.typ, i.val)
-	// }
 	return fmt.Sprintf("%s:%q", i.typ, i.val)
 }
 
@@ -69,6 +67,7 @@ var tokenName = map[tokenType]string{
 	tokenSetRightDelim:  "t_set_right_delim",
 }
 
+// String satisfies the fmt.Stringer interface making it easier to print tokens.
 func (i tokenType) String() string {
 	s := tokenName[i]
 	if s == "" {
@@ -237,7 +236,7 @@ func (l *lexer) lexTag() stateFn {
 	switch r := l.next(); {
 	case r == eof || r == '\n':
 		return l.errorf("unclosed action")
-	case isSpace(r):
+	case whitespace(r):
 		l.ignore()
 	case r == '!':
 		l.emit(tokenComment)
@@ -254,7 +253,7 @@ func (l *lexer) lexTag() stateFn {
 		l.emit(tokenPartial)
 	case r == '{':
 		l.emit(tokenRawStart)
-	case isAlphaNumeric(r):
+	case alphanum(r):
 		l.backup()
 		return l.lexIdentifier
 	default:
@@ -268,7 +267,7 @@ func (l *lexer) lexIdentifier() stateFn {
 Loop:
 	for {
 		switch r := l.next(); {
-		case isAlphaNumeric(r):
+		case alphanum(r):
 			// absorb.
 		default:
 			l.backup()
@@ -349,8 +348,8 @@ func newLexer(input, left, right string) *lexer {
 	return l
 }
 
-// isSpace reports whether r is a space character.
-func isSpace(r rune) bool {
+// whitespace reports whether r is a space character.
+func whitespace(r rune) bool {
 	switch r {
 	case ' ', '\t', '\n', '\r':
 		return true
@@ -358,7 +357,7 @@ func isSpace(r rune) bool {
 	return false
 }
 
-// isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
-func isAlphaNumeric(r rune) bool {
+// alphanum reports whether r is an alphabetic, digit, or underscore.
+func alphanum(r rune) bool {
 	return r == '_' || r == '.' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }
