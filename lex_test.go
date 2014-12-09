@@ -6,11 +6,11 @@ import "testing"
 
 func TestLexer(t *testing.T) {
 	for _, test := range []struct {
-		lexer    *lexer
+		template string
 		expected []token
 	}{
 		{
-			newLexer("foo {{{bar}}} baz {{! this is ignored }}", "{{", "}}"),
+			"foo {{{bar}}} baz {{! this is ignored }}",
 			[]token{
 				{typ: tokenText, val: "foo "},
 				{typ: tokenLeftDelim, val: "{{"},
@@ -27,7 +27,7 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
-			newLexer("foo {{bar}} baz {{=| |=}} |foo| |={{ }}=| {{bar}}", "{{", "}}"),
+			"foo {{bar}} baz {{=| |=}} |foo| |={{ }}=| {{bar}}",
 			[]token{
 				{typ: tokenText, val: "foo "},
 				{typ: tokenLeftDelim, val: "{{"},
@@ -48,7 +48,7 @@ func TestLexer(t *testing.T) {
 		},
 	} {
 		var (
-			lexer = test.lexer
+			lexer = newLexer(test.template, "{{", "}}")
 			token = lexer.token()
 			i     = 0
 		)

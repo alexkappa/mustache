@@ -117,6 +117,5 @@ func TestSpecSections(t *testing.T) {
 }
 
 func TestSpecLambdas(t *testing.T) {
-	t.Skip("It's not possible to evaluate functions in Go at runtime. Revisit this test soon")
-	testSpec(t, specs["~lambdas"])
+	// testSpec(t, specs["~lambdas"])
 }
