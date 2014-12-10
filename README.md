@@ -11,11 +11,11 @@ For more information on mustache check the official documentation [here](http://
 
 # Installation
 
-Install with `go get github.com/alexkappa/go-mustache`.
+Install with `go get github.com/alexkappa/mustache`.
 
 # Documentation
 
-The API documentation is available at [godoc.org](http://godoc.org/github.com/alexkappa/go-mustache).
+The API documentation is available at [godoc.org](http://godoc.org/github.com/alexkappa/mustache).
 
 # Usage
 
@@ -47,4 +47,4 @@ Run `go test` as usual. If you want to run the spec tests against this package, 
 
 # Contributing
 
-If you would like to contribute, head on to the [issues](https://github.com/alexkappa/go-mustache/issues) page for tasks that need help.
+If you would like to contribute, head on to the [issues](https://github.com/alexkappa/mustache/issues) page for tasks that need help.
