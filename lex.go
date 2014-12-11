@@ -196,15 +196,17 @@ func (l *lexer) lexText() stateFn {
 			}
 			return l.lexLeftDelim
 		}
-		// Exit the loop if we have reached the end of file and emit whatever we
-		// gathered so far as text.
+		// Produce a token and exit the loop if we have reached the end of file.
 		if l.next() == eof {
 			break
 		}
 	}
+	// Emit whatever we gathered so far as text.
 	if l.pos > l.start {
 		l.emit(tokenText)
 	}
+	// Always end with EOF token. The parser will keep asking for tokens until
+	// an tokenEOF or tokenError token are encountered.
 	l.emit(tokenEOF)
 	return nil
 }
