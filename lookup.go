@@ -78,6 +78,8 @@ out:
 		return r.Int() > 0
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return r.Uint() > 0
+	case reflect.Float32, reflect.Float64:
+		return r.Float() > 0
 	case reflect.String:
 		return r.String() != ""
 	case reflect.Bool:
