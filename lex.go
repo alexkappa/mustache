@@ -80,7 +80,7 @@ const eof = -1
 
 // stateFn represents the state of the scanner as a function that returns the
 // next state.
-type stateFn func() stateFn
+type stateFn func(*lexer) stateFn
 
 // lexer holds the state of the scanner.
 type lexer struct {
@@ -167,7 +167,7 @@ func (l *lexer) token() token {
 		case token := <-l.tokens:
 			return token
 		default:
-			l.state = l.state()
+			l.state = l.state(l)
 		}
 	}
 	panic("not reached")
@@ -175,8 +175,8 @@ func (l *lexer) token() token {
 
 // state functions.
 
-// lexText scans until an opening action delimiter, "{{".
-func (l *lexer) lexText() stateFn {
+// stateText scans until an opening action delimiter, "{{".
+func stateText(l *lexer) stateFn {
 	for {
 		// Lookahead for {{= which shouldn't emit anything, instead should parse
 		// a set delimiters tag and change the lexers delimiters. This operation
@@ -186,7 +186,7 @@ func (l *lexer) lexText() stateFn {
 				l.emit(tokenText)
 			}
 			l.pos += len(l.leftDelim + "=")
-			return l.lexSetDelim
+			return stateSetDelim
 		}
 		// Lookahead for {{ which should switch to lexing an open tag instead of
 		// regular text tokens.
@@ -194,7 +194,7 @@ func (l *lexer) lexText() stateFn {
 			if l.pos > l.start {
 				l.emit(tokenText)
 			}
-			return l.lexLeftDelim
+			return stateLeftDelim
 		}
 		// Produce a token and exit the loop if we have reached the end of file.
 		if l.next() == eof {
@@ -211,29 +211,29 @@ func (l *lexer) lexText() stateFn {
 	return nil
 }
 
-// lexLeftDelim scans the left delimiter, which is known to be present.
-func (l *lexer) lexLeftDelim() stateFn {
+// stateLeftDelim scans the left delimiter, which is known to be present.
+func stateLeftDelim(l *lexer) stateFn {
 	l.pos += len(l.leftDelim)
 	l.emit(tokenLeftDelim)
-	return l.lexTag
+	return stateTag
 }
 
-// lexRightDelim scans the right delimiter, which is known to be present.
-func (l *lexer) lexRightDelim() stateFn {
+// stateRightDelim scans the right delimiter, which is known to be present.
+func stateRightDelim(l *lexer) stateFn {
 	l.pos += len(l.rightDelim)
 	l.emit(tokenRightDelim)
-	return l.lexText
+	return stateText
 }
 
-// lexTag scans the elements inside action delimiters.
-func (l *lexer) lexTag() stateFn {
+// stateTag scans the elements inside action delimiters.
+func stateTag(l *lexer) stateFn {
 	if strings.HasPrefix(l.input[l.pos:], "}"+l.rightDelim) {
 		l.pos++
 		l.emit(tokenRawEnd)
-		return l.lexRightDelim
+		return stateRightDelim
 	}
 	if strings.HasPrefix(l.input[l.pos:], l.rightDelim) {
-		return l.lexRightDelim
+		return stateRightDelim
 	}
 	switch r := l.next(); {
 	case r == eof || r == '\n':
@@ -242,7 +242,7 @@ func (l *lexer) lexTag() stateFn {
 		l.ignore()
 	case r == '!':
 		l.emit(tokenComment)
-		return l.lexComment
+		return stateComment
 	case r == '#':
 		l.emit(tokenSectionStart)
 	case r == '^':
@@ -257,15 +257,15 @@ func (l *lexer) lexTag() stateFn {
 		l.emit(tokenRawStart)
 	case alphanum(r):
 		l.backup()
-		return l.lexIdentifier
+		return stateIdent
 	default:
 		return l.errorf("unrecognized character in action: %#U", r)
 	}
-	return l.lexTag
+	return stateTag
 }
 
-// lexIdentifier scans an alphanumeric or field.
-func (l *lexer) lexIdentifier() stateFn {
+// stateIdent scans an alphanumeric or field.
+func stateIdent(l *lexer) stateFn {
 Loop:
 	for {
 		switch r := l.next(); {
@@ -277,11 +277,11 @@ Loop:
 			break Loop
 		}
 	}
-	return l.lexTag
+	return stateTag
 }
 
-// lexComment scans a comment. The left comment marker is known to be present.
-func (l *lexer) lexComment() stateFn {
+// stateComment scans a comment. The left comment marker is known to be present.
+func stateComment(l *lexer) stateFn {
 	i := strings.Index(l.input[l.pos:], l.rightDelim)
 	if i < 0 {
 		return l.errorf("unclosed tag")
@@ -290,12 +290,12 @@ func (l *lexer) lexComment() stateFn {
 	l.emit(tokenText)
 	l.pos += len(l.rightDelim)
 	l.emit(tokenRightDelim)
-	return l.lexText
+	return stateText
 }
 
-// lexSetDelim scans a set of set delimiter tags and replaces the lexers left
+// stateSetDelim scans a set of set delimiter tags and replaces the lexers left
 // and right delimiters to new values.
-func (l *lexer) lexSetDelim() stateFn {
+func stateSetDelim(l *lexer) stateFn {
 	end := "=" + l.rightDelim
 	i := strings.Index(l.input[l.pos:], end)
 	if i < 0 {
@@ -315,26 +315,22 @@ func (l *lexer) lexSetDelim() stateFn {
 	}
 	l.pos += i + len(end)
 	l.ignore()
-	return l.lexText
+	return stateText
 }
 
 // delimFn is a self referencing function which helps with setting the right
-// delimiter in the right order, and if too many delimiters are present an error
-// is emitted
+// delimiter in the right order.
 type delimFn func(l *lexer, s string) delimFn
 
+// leftFn sets the left delimiter to s and returns a rightFn.
 func leftFn(l *lexer, s string) delimFn {
 	l.leftDelim = s
 	return rightFn
 }
 
+// rightFn sets the right delimiter to s.
 func rightFn(l *lexer, s string) delimFn {
 	l.rightDelim = s
-	return errorFn
-}
-
-func errorFn(l *lexer, s string) delimFn {
-	l.errorf("too many delimiters %s", s)
 	return nil
 }
 
@@ -346,7 +342,7 @@ func newLexer(input, left, right string) *lexer {
 		rightDelim: right,
 		tokens:     make(chan token, 2),
 	}
-	l.state = l.lexText // initial state
+	l.state = stateText // initial state
 	return l
 }
 
