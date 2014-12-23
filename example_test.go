@@ -2,7 +2,10 @@
 
 package mustache
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func ExampleTemplate_basic() {
 	template := New()
@@ -27,6 +30,18 @@ func ExampleTemplate_partials() {
 	output, _ := template.RenderString(context)
 	fmt.Println(output)
 	// Output: bazinga!
+}
+
+func ExampleTemplate_reader() {
+	f, err := os.Open("template.mustache")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open file: %s\n", err)
+	}
+	t, err := Parse(f)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse template: %s\n", err)
+	}
+	t.Render(os.Stdout, nil)
 }
 
 func ExampleOption() {
