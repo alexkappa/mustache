@@ -78,7 +78,7 @@ func ExampleOption() {
 	title.ParseString("{{title}}") // parse a template string
 
 	body := New()
-	body.Option(Name("body"))
+	body.Option(Name("body")) // options can be defined after we instantiate too
 	body.ParseString("{{content}}")
 
 	template := New(
@@ -94,8 +94,7 @@ func ExampleOption() {
 		"content": "Logic less templates with Mustache!",
 	}
 
-	output, _ := template.RenderString(context)
-	fmt.Println(output)
+	template.Render(os.Stdout, context)
 	// Output: Mustache
 	// Logic less templates with Mustache!
 }
