@@ -178,16 +178,6 @@ func (l *lexer) token() token {
 // stateText scans until an opening action delimiter, "{{".
 func stateText(l *lexer) stateFn {
 	for {
-		// Lookahead for {{= which shouldn't emit anything, instead should parse
-		// a set delimiters tag and change the lexers delimiters. This operation
-		// is hidden from the parser.
-		if strings.HasPrefix(l.input[l.pos:], l.leftDelim+"=") {
-			if l.pos > l.start {
-				l.emit(tokenText)
-			}
-			l.pos += len(l.leftDelim + "=")
-			return stateSetDelim
-		}
 		// Lookahead for {{ which should switch to lexing an open tag instead of
 		// regular text tokens.
 		if strings.HasPrefix(l.input[l.pos:], l.leftDelim) {
@@ -214,6 +204,13 @@ func stateText(l *lexer) stateFn {
 // stateLeftDelim scans the left delimiter, which is known to be present.
 func stateLeftDelim(l *lexer) stateFn {
 	l.pos += len(l.leftDelim)
+	if l.input[l.pos] == '=' {
+		// When the lexer encounters "{{=" it proceeds to the set delimiter
+		// state which alters the left and right delimiters. This operation is
+		// hidden from the parser and no tokens are emited.
+		l.pos++
+		return stateSetDelim
+	}
 	l.emit(tokenLeftDelim)
 	return stateTag
 }
