@@ -35,25 +35,25 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 		// If the current context is a map, we'll look for a key in that map
 		// that matches the name.
 		case reflect.Map:
-			mapValue := reflectValue.MapIndex(reflect.ValueOf(name))
-			if mapValue.IsValid() {
-				return mapValue.Interface(), truth(mapValue)
+			item := reflectValue.MapIndex(reflect.ValueOf(name))
+			if item.IsValid() {
+				return item.Interface(), truth(item)
 			}
 		// If the current context is a struct, we'll look for a property in that
 		// struct that matches the name. In the near future I'd like to add
 		// support for matching struct names to tags so we can use lower_case
 		// names in our templates which makes it more mustache like.
 		case reflect.Struct:
-			fieldValue := reflectValue.FieldByName(name)
-			if fieldValue.IsValid() {
-				return fieldValue.Interface(), truth(fieldValue)
-			} else {
-				method := reflectValue.MethodByName(name)
-				if method.IsValid() && method.Type().NumIn() == 1 {
-					out := method.Call(nil)[0]
-					return out.Interface(), truth(out)
-				}
+			field := reflectValue.FieldByName(name)
+			if field.IsValid() {
+				return field.Interface(), truth(field)
 			}
+			method := reflectValue.MethodByName(name)
+			if method.IsValid() && method.Type().NumIn() == 1 {
+				out := method.Call(nil)[0]
+				return out.Interface(), truth(out)
+			}
+
 		}
 		// If by this point no value was matched, we'll move up a step in the
 		// chain and try to match a value there.
