@@ -5,6 +5,7 @@ package mustache
 
 import (
 	"fmt"
+
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -33,6 +34,7 @@ const (
 	tokenLeftDelim      // {{ left action delimiter
 	tokenRightDelim     // }} right action delimiter
 	tokenText           // plain text
+	tokenLine           // new line
 	tokenComment        // {{! this is a comment and is ignored}}
 	tokenSectionStart   // {{#foo}} denotes a section start
 	tokenSectionInverse // {{^foo}} denotes an inverse section start
@@ -54,6 +56,7 @@ var tokenName = map[tokenType]string{
 	tokenLeftDelim:      "t_left_delim",
 	tokenRightDelim:     "t_right_delim",
 	tokenText:           "t_text",
+	tokenLine:           "t_line",
 	tokenComment:        "t_comment",
 	tokenSectionStart:   "t_section_start",
 	tokenSectionInverse: "t_section_inverse",
@@ -186,6 +189,15 @@ func stateText(l *lexer) stateFn {
 			}
 			return stateLeftDelim
 		}
+		// When a new line character is encountered it is emited as a separate
+		// token. This helps the rendering engine decide whether or not to
+		// render certain ast nodes when standalone tags are encountered.
+		if strings.HasPrefix(l.input[l.pos:], "\n") {
+			if l.pos > l.start {
+				l.emit(tokenText)
+			}
+			return stateLine
+		}
 		// Produce a token and exit the loop if we have reached the end of file.
 		if l.next() == eof {
 			break
@@ -198,21 +210,29 @@ func stateText(l *lexer) stateFn {
 	// Always end with EOF token. The parser will keep asking for tokens until
 	// an tokenEOF or tokenError token are encountered.
 	l.emit(tokenEOF)
+	// The text state doesn't have a default next state.
 	return nil
 }
 
 // stateLeftDelim scans the left delimiter, which is known to be present.
 func stateLeftDelim(l *lexer) stateFn {
 	l.pos += len(l.leftDelim)
-	if l.input[l.pos] == '=' {
+	if l.peek() == '=' {
 		// When the lexer encounters "{{=" it proceeds to the set delimiter
 		// state which alters the left and right delimiters. This operation is
 		// hidden from the parser and no tokens are emited.
-		l.pos++
+		l.next()
 		return stateSetDelim
 	}
 	l.emit(tokenLeftDelim)
 	return stateTag
+}
+
+// stateLine scans a new line character and emits a token for it.
+func stateLine(l *lexer) stateFn {
+	l.next()
+	l.emit(tokenLine)
+	return stateText
 }
 
 // stateRightDelim scans the right delimiter, which is known to be present.

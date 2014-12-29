@@ -10,7 +10,7 @@ func TestLexer(t *testing.T) {
 		expected []token
 	}{
 		{
-			"foo {{{bar}}} baz {{! this is ignored }}",
+			"foo {{{bar}}}\nbaz {{! this is ignored }}",
 			[]token{
 				{typ: tokenText, val: "foo "},
 				{typ: tokenLeftDelim, val: "{{"},
@@ -18,7 +18,8 @@ func TestLexer(t *testing.T) {
 				{typ: tokenIdentifier, val: "bar"},
 				{typ: tokenRawEnd, val: "}"},
 				{typ: tokenRightDelim, val: "}}"},
-				{typ: tokenText, val: " baz "},
+				{typ: tokenLine, val: "\n"},
+				{typ: tokenText, val: "baz "},
 				{typ: tokenLeftDelim, val: "{{"},
 				{typ: tokenComment, val: "!"},
 				{typ: tokenText, val: " this is ignored "},
@@ -27,8 +28,9 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
-			"foo {{bar}} baz {{=| |=}} |foo| |={{ }}=| {{bar}}",
+			"\nfoo {{bar}} baz {{=| |=}} |foo| |={{ }}=| {{bar}}",
 			[]token{
+				{typ: tokenLine, val: "\n"},
 				{typ: tokenText, val: "foo "},
 				{typ: tokenLeftDelim, val: "{{"},
 				{typ: tokenIdentifier, val: "bar"},
@@ -53,6 +55,10 @@ func TestLexer(t *testing.T) {
 			i     = 0
 		)
 		for token.typ > tokenEOF {
+			t.Logf("%s\n", token)
+			if i >= len(test.expected) {
+				t.Fatalf("token stream exceeded the length of expected tokens.")
+			}
 			if token.typ != test.expected[i].typ {
 				t.Errorf("unexpected token %q, expected %q", token.typ, test.expected[i].typ)
 			}

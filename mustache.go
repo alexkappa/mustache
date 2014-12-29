@@ -33,6 +33,20 @@ func (n textNode) String() string {
 	return fmt.Sprintf("[text: %q]", string(n))
 }
 
+// The lineNode type is the same as a textNode and is intended to discriminate
+// new lines in order to avoid printing an empty line if all there was in that
+// line were standalone tags.
+type lineNode string
+
+func (n lineNode) render(t *Template, w io.Writer, c ...interface{}) error {
+	_, err := w.Write([]byte(n))
+	return err
+}
+
+func (n lineNode) String() string {
+	return fmt.Sprintf("[line: %q]", string(n))
+}
+
 // The varNode type represents a part of the template that needs to be replaced
 // by a variable that exists within c.
 type varNode struct {

@@ -13,9 +13,11 @@ func TestParser(t *testing.T) {
 		expected []node
 	}{
 		{
-			"{{#foo}}{{#foo}}hello nested{{/foo}}{{/foo}}",
+			"{{#foo}}\n\t{{#foo}}hello nested{{/foo}}{{/foo}}",
 			[]node{
 				&sectionNode{"foo", false, []node{
+					lineNode("\n"),
+					textNode("\t"),
 					&sectionNode{"foo", false, []node{
 						textNode("hello nested"),
 					}},
@@ -23,13 +25,16 @@ func TestParser(t *testing.T) {
 			},
 		},
 		{
-			"foo {{bar}} {{#alex}}baz{{/alex}} {{!foo}}",
+			"\nfoo {{bar}} {{#alex}}\n\tbaz\n{{/alex}} {{!foo}}",
 			[]node{
+				lineNode("\n"),
 				textNode("foo "),
 				&varNode{"bar", true},
 				textNode(" "),
 				&sectionNode{"alex", false, []node{
-					textNode("baz"),
+					lineNode("\n"),
+					textNode("\tbaz"),
+					lineNode("\n"),
 				}},
 				textNode(" "),
 				commentNode("foo"),

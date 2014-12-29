@@ -145,6 +145,8 @@ loop:
 			return nil, p.errorf(token, "%s", token.val)
 		case tokenText:
 			nodes = append(nodes, textNode(token.val))
+		case tokenLine:
+			nodes = append(nodes, lineNode(token.val))
 		case tokenLeftDelim:
 			node, err := p.parseTag()
 			if err != nil {
