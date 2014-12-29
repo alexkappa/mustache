@@ -243,7 +243,7 @@ func (p *parser) parseSection(inverse bool) (node, error) {
 	}
 	var (
 		tokens []token
-		stack  int = 1
+		stack  = 1
 	)
 	for {
 		read, err := p.readv(t)
