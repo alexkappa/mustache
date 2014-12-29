@@ -211,6 +211,7 @@ func New(options ...Option) *Template {
 	return t
 }
 
+// Option applies options to the currrent template t.
 func (t *Template) Option(options ...Option) {
 	for _, optionFn := range options {
 		optionFn(t)
