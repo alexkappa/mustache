@@ -4,6 +4,7 @@
 package mustache
 
 import (
+	"bytes"
 	"fmt"
 
 	"strings"
@@ -176,6 +177,27 @@ func (l *lexer) token() token {
 	panic("not reached")
 }
 
+func (l *lexer) String() string {
+	w := bytes.NewBuffer(nil)
+	fmt.Fprintf(w, "Template: %q\n", l.input)
+	fmt.Fprintf(w, "Index   : %q\n", l.pos)
+	fmt.Fprintf(w, "Current : %q\n", l.input[l.pos])
+	fmt.Fprintf(w, "Buffer  : %q\n", l.input[l.start:l.pos])
+	return w.String()
+}
+
+// newLexer creates a new scanner for the input string.
+func newLexer(input, left, right string) *lexer {
+	l := &lexer{
+		input:      input,
+		leftDelim:  left,
+		rightDelim: right,
+		tokens:     make(chan token, 2),
+	}
+	l.state = stateText // initial state
+	return l
+}
+
 // state functions.
 
 // stateText scans until an opening action delimiter, "{{".
@@ -305,9 +327,7 @@ func stateComment(l *lexer) stateFn {
 	}
 	l.pos += i
 	l.emit(tokenText)
-	l.pos += len(l.rightDelim)
-	l.emit(tokenRightDelim)
-	return stateText
+	return stateRightDelim
 }
 
 // stateSetDelim scans a set of set delimiter tags and replaces the lexers left
@@ -349,18 +369,6 @@ func leftFn(l *lexer, s string) delimFn {
 func rightFn(l *lexer, s string) delimFn {
 	l.rightDelim = s
 	return nil
-}
-
-// newLexer creates a new scanner for the input string.
-func newLexer(input, left, right string) *lexer {
-	l := &lexer{
-		input:      input,
-		leftDelim:  left,
-		rightDelim: right,
-		tokens:     make(chan token, 2),
-	}
-	l.state = stateText // initial state
-	return l
 }
 
 // whitespace reports whether r is a space character.
