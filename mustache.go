@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strings"
-	"text/template"
 )
 
 // The node type is the base type that represents a node in the parse tree.
@@ -52,7 +51,7 @@ func (n *varNode) render(t *Template, w *writer, c ...interface{}) error {
 	w.text()
 	if v, ok := lookup(n.name, c...); ok {
 		if n.escape {
-			v = template.HTMLEscapeString(fmt.Sprintf("%v", v))
+			v = escape(fmt.Sprintf("%v", v))
 		}
 		print(w, v)
 		return nil
@@ -124,9 +123,9 @@ type partialNode struct {
 
 func (p *partialNode) render(t *Template, w *writer, c ...interface{}) error {
 	w.tag()
-	if partial, ok := t.partials[p.name]; ok {
-		partial.partials = t.partials
-		partial.render(w, c...)
+	if template, ok := t.partials[p.name]; ok {
+		template.partials = t.partials
+		template.render(w, c...)
 	}
 	return nil
 }
@@ -163,6 +162,32 @@ func print(w io.Writer, v interface{}) {
 			fmt.Fprintf(w, "%v", v)
 		}
 	}
+}
+
+// The escape function replicates the text/template.HTMLEscapeString but keeps
+// "&apos;" and "&quot;" for compatibility with the mustache spec.
+func escape(s string) string {
+	if strings.IndexAny(s, `'"&<>`) < 0 {
+		return s
+	}
+	var b bytes.Buffer
+	for _, r := range s {
+		switch r {
+		case '"':
+			b.WriteString("&quot;")
+		case '\'':
+			b.WriteString("&apos;")
+		case '&':
+			b.WriteString("&amp;")
+		case '<':
+			b.WriteString("&lt;")
+		case '>':
+			b.WriteString("&gt;")
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // The Option type describes functional options used with Templates. Check out
