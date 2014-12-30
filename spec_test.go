@@ -56,10 +56,10 @@ func testSpec(t *testing.T, s Spec) {
 	buf := &bytes.Buffer{}
 	for _, test := range s.Tests {
 		buf.Reset()
-		buf.WriteString(fmt.Sprintf("%q\n", test.Desc))
+		buf.WriteString(fmt.Sprintf("%s\n", test.Desc))
 		buf.WriteString(fmt.Sprintf("Name    : %q\n", test.Name))
 		buf.WriteString(fmt.Sprintf("Template: %q\n", test.Template))
-		buf.WriteString(fmt.Sprintf("Data    : %v\n", test.Data))
+		buf.WriteString(fmt.Sprintf("Data    : %q\n", test.Data))
 		defer func() {
 			if r := recover(); r != nil {
 				t.Fatalf("%sParse failed on test %v: %v\n %s", buf, test.Name, r, debug.Stack())
@@ -93,29 +93,25 @@ func testSpec(t *testing.T, s Spec) {
 }
 
 func TestSpecComments(t *testing.T) {
-	// testSpec(t, specs["comments"])
+	testSpec(t, specs["comments"])
 }
 
 func TestSpecDelimiters(t *testing.T) {
-	// testSpec(t, specs["delimiters"])
+	testSpec(t, specs["delimiters"])
 }
 
 func TestSpecInterpolation(t *testing.T) {
-	// testSpec(t, specs["interpolation"])
+	testSpec(t, specs["interpolation"])
 }
 
 func TestSpecInverted(t *testing.T) {
-	// testSpec(t, specs["inverted"])
+	testSpec(t, specs["inverted"])
 }
 
 func TestSpecPartials(t *testing.T) {
-	// testSpec(t, specs["partials"])
+	testSpec(t, specs["partials"])
 }
 
 func TestSpecSections(t *testing.T) {
-	// testSpec(t, specs["sections"])
-}
-
-func TestSpecLambdas(t *testing.T) {
-	// testSpec(t, specs["~lambdas"])
+	testSpec(t, specs["sections"])
 }
