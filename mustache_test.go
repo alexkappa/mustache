@@ -53,12 +53,14 @@ func TestParseTree(t *testing.T) {
 		"zer": 0.11,
 	}
 	b := bytes.NewBuffer(nil)
+	w := newWriter(b)
 	for _, e := range template.elems {
-		err := e.render(template, b, data)
+		err := e.render(template, w, data)
 		if err != nil {
 			t.Error(err)
 		}
 	}
+	w.flush()
 
 	expected := `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin commodo viverra elit 0.11.`
 

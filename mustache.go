@@ -17,34 +17,28 @@ type node interface {
 	// The render function should be defined by any type wishing to satisfy the
 	// node interface. Implementations should be able to render itself to the
 	// w Writer with c given as context.
-	render(t *Template, w io.Writer, c ...interface{}) error
+	render(t *Template, w *writer, c ...interface{}) error
 }
 
 // The textNode type represents a part of the template that is made up solely of
 // text. It's an alias to string and it ignores c when rendering.
 type textNode string
 
-func (n textNode) render(t *Template, w io.Writer, c ...interface{}) error {
-	_, err := w.Write([]byte(n))
-	return err
+func (n textNode) render(t *Template, w *writer, c ...interface{}) error {
+	for _, r := range n {
+		if !whitespace(r) {
+			w.text()
+		}
+		err := w.write(r)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (n textNode) String() string {
 	return fmt.Sprintf("[text: %q]", string(n))
-}
-
-// The lineNode type is the same as a textNode and is intended to discriminate
-// new lines in order to avoid printing an empty line if all there was in that
-// line were standalone tags.
-type lineNode string
-
-func (n lineNode) render(t *Template, w io.Writer, c ...interface{}) error {
-	_, err := w.Write([]byte(n))
-	return err
-}
-
-func (n lineNode) String() string {
-	return fmt.Sprintf("[line: %q]", string(n))
 }
 
 // The varNode type represents a part of the template that needs to be replaced
@@ -54,7 +48,8 @@ type varNode struct {
 	escape bool
 }
 
-func (n *varNode) render(t *Template, w io.Writer, c ...interface{}) error {
+func (n *varNode) render(t *Template, w *writer, c ...interface{}) error {
+	w.text()
 	if v, ok := lookup(n.name, c...); ok {
 		if n.escape {
 			v = template.HTMLEscapeString(fmt.Sprintf("%v", v))
@@ -77,7 +72,9 @@ type sectionNode struct {
 	elems    []node
 }
 
-func (n *sectionNode) render(t *Template, w io.Writer, c ...interface{}) error {
+func (n *sectionNode) render(t *Template, w *writer, c ...interface{}) error {
+	w.tag()
+	defer w.tag()
 	elemFn := func(v ...interface{}) {
 		for _, elem := range n.elems {
 			elem.render(t, w, append(v, c...)...)
@@ -111,7 +108,8 @@ func (n *sectionNode) String() string {
 // can be optionally enabled to print comments.
 type commentNode string
 
-func (n commentNode) render(t *Template, w io.Writer, c ...interface{}) error {
+func (n commentNode) render(t *Template, w *writer, c ...interface{}) error {
+	w.tag()
 	return nil
 }
 
@@ -124,15 +122,28 @@ type partialNode struct {
 	name string
 }
 
-func (p *partialNode) render(t *Template, w io.Writer, c ...interface{}) error {
+func (p *partialNode) render(t *Template, w *writer, c ...interface{}) error {
+	w.tag()
 	if partial, ok := t.partials[p.name]; ok {
-		partial.Render(w, c...)
+		partial.partials = t.partials
+		partial.render(w, c...)
 	}
 	return nil
 }
 
 func (p *partialNode) String() string {
 	return fmt.Sprintf("[partial: %s]", p.name)
+}
+
+type delimNode string
+
+func (n delimNode) String() string {
+	return "[delim]"
+}
+
+func (n delimNode) render(t *Template, w *writer, c ...interface{}) error {
+	w.tag()
+	return nil
 }
 
 // The print function is able to format the interface v and write it to w using
@@ -245,9 +256,7 @@ func (t *Template) ParseBytes(b []byte) error {
 	return t.Parse(bytes.NewReader(b))
 }
 
-// Render walks through the template's parse tree and writes the output to w
-// replacing the values found in context.
-func (t *Template) Render(w io.Writer, context ...interface{}) error {
+func (t *Template) render(w *writer, context ...interface{}) error {
 	for _, elem := range t.elems {
 		err := elem.render(t, w, context...)
 		if err != nil {
@@ -256,7 +265,13 @@ func (t *Template) Render(w io.Writer, context ...interface{}) error {
 			}
 		}
 	}
-	return nil
+	return w.flush()
+}
+
+// Render walks through the template's parse tree and writes the output to w
+// replacing the values found in context.
+func (t *Template) Render(w io.Writer, context ...interface{}) error {
+	return t.render(newWriter(w), context...)
 }
 
 // RenderString is a helper function that renders the template as a string.
