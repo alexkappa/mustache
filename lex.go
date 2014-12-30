@@ -6,7 +6,6 @@ package mustache
 import (
 	"bytes"
 	"fmt"
-
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -35,7 +34,6 @@ const (
 	tokenLeftDelim      // {{ left action delimiter
 	tokenRightDelim     // }} right action delimiter
 	tokenText           // plain text
-	tokenLine           // new line
 	tokenComment        // {{! this is a comment and is ignored}}
 	tokenSectionStart   // {{#foo}} denotes a section start
 	tokenSectionInverse // {{^foo}} denotes an inverse section start
@@ -57,7 +55,6 @@ var tokenName = map[tokenType]string{
 	tokenLeftDelim:      "t_left_delim",
 	tokenRightDelim:     "t_right_delim",
 	tokenText:           "t_text",
-	tokenLine:           "t_line",
 	tokenComment:        "t_comment",
 	tokenSectionStart:   "t_section_start",
 	tokenSectionInverse: "t_section_inverse",
@@ -108,6 +105,11 @@ func (l *lexer) next() (r rune) {
 	r, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
 	l.pos += l.width
 	return r
+}
+
+// seek advances the pointer by n spaces.
+func (l *lexer) seek(n int) {
+	l.pos += n
 }
 
 // peek returns but does not consume the next rune in the input.
@@ -211,15 +213,6 @@ func stateText(l *lexer) stateFn {
 			}
 			return stateLeftDelim
 		}
-		// When a new line character is encountered it is emited as a separate
-		// token. This helps the rendering engine decide whether or not to
-		// render certain ast nodes when standalone tags are encountered.
-		if strings.HasPrefix(l.input[l.pos:], "\n") {
-			if l.pos > l.start {
-				l.emit(tokenText)
-			}
-			return stateLine
-		}
 		// Produce a token and exit the loop if we have reached the end of file.
 		if l.next() == eof {
 			break
@@ -238,7 +231,7 @@ func stateText(l *lexer) stateFn {
 
 // stateLeftDelim scans the left delimiter, which is known to be present.
 func stateLeftDelim(l *lexer) stateFn {
-	l.pos += len(l.leftDelim)
+	l.seek(len(l.leftDelim))
 	if l.peek() == '=' {
 		// When the lexer encounters "{{=" it proceeds to the set delimiter
 		// state which alters the left and right delimiters. This operation is
@@ -250,16 +243,9 @@ func stateLeftDelim(l *lexer) stateFn {
 	return stateTag
 }
 
-// stateLine scans a new line character and emits a token for it.
-func stateLine(l *lexer) stateFn {
-	l.next()
-	l.emit(tokenLine)
-	return stateText
-}
-
 // stateRightDelim scans the right delimiter, which is known to be present.
 func stateRightDelim(l *lexer) stateFn {
-	l.pos += len(l.rightDelim)
+	l.seek(len(l.rightDelim))
 	l.emit(tokenRightDelim)
 	return stateText
 }
@@ -267,7 +253,7 @@ func stateRightDelim(l *lexer) stateFn {
 // stateTag scans the elements inside action delimiters.
 func stateTag(l *lexer) stateFn {
 	if strings.HasPrefix(l.input[l.pos:], "}"+l.rightDelim) {
-		l.pos++
+		l.seek(1)
 		l.emit(tokenRawEnd)
 		return stateRightDelim
 	}
@@ -325,7 +311,7 @@ func stateComment(l *lexer) stateFn {
 	if i < 0 {
 		return l.errorf("unclosed tag")
 	}
-	l.pos += i
+	l.seek(i)
 	l.emit(tokenText)
 	return stateRightDelim
 }
@@ -350,8 +336,9 @@ func stateSetDelim(l *lexer) stateFn {
 			}
 		}
 	}
-	l.pos += i + len(end)
+	l.seek(i + len(end))
 	l.ignore()
+	l.emit(tokenSetDelim)
 	return stateText
 }
 
