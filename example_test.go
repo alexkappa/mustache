@@ -35,8 +35,7 @@ func ExampleTemplate_partials() {
 		"bar": "bazinga!",
 	}
 
-	output, _ := template.RenderString(context)
-	fmt.Println(output)
+	template.Render(os.Stdout, context)
 	// Output: bazinga!
 }
 
