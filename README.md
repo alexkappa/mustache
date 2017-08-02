@@ -1,4 +1,6 @@
-# Overview
+# Mustache
+
+[![godoc reference](https://godoc.org/github.com/alexkappa/mustache?status.svg)](https://godoc.org/github.com/alexkappa/mustache) [![wercker status](https://app.wercker.com/status/37361276190f155a06df0c3f3e37a870/s/master "wercker status")](https://app.wercker.com/project/byKey/37361276190f155a06df0c3f3e37a870) [![Code Climate](https://codeclimate.com/github/alexkappa/mustache/badges/gpa.svg)](https://codeclimate.com/github/alexkappa/mustache)
 
 This is an implementation of the mustache templating language in Go.
 
@@ -121,7 +123,7 @@ template.Render(os.Stdout, context)
 
 Run `go test` as usual. If you want to run the spec tests against this package, make sure you've checked out the specs submodule. Otherwise spec tests will be skipped.
 
-Currently spec tests are commented out as they fail due to an issue with how standalone tags and empty lines are being handled. Inspecting them manually, one can see that the templates render correctly but with some additional `\n` which should have been omited. See issue [#1](http://github.com/alexkappa/mustache/issues/1).
+Currently certain spec tests are skipped as they fail due to an issue with how standalone tags and empty lines are being handled. Inspecting them manually, one can see that the templates render correctly but with some additional `\n` which should have been omited. See issue [#1](http://github.com/alexkappa/mustache/issues/1).
 
 # Contributing
 
