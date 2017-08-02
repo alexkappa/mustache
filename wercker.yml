@@ -15,9 +15,17 @@ build:
         name: go test
         code: |
           go test -coverprofile=coverage.out
+    - script:
+        name: copy files
+        code: |
+          cp coverage.out $WERCKER_OUTPUT_DIR/
 send-coverage:
   box: node
   steps:
+    - script:
+        name: copy files
+        code: |
+          cp $WERCKER_OUTPUT_DIR/coverage.out .
     - script:
         name: install codeclimate test reporter
         code: |
