@@ -4,6 +4,10 @@ build:
     - wercker/setup-go-workspace:
         package-dir: github.com/alexkappa/exp
     - script:
+        name: update submodules
+        code: |
+          git submodule update --init --recursive
+    - script:
         name: go build
         code: |
           go build
