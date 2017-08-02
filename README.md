@@ -4,11 +4,13 @@
 
 This is an implementation of the mustache templating language in Go.
 
-It is inspired by [hoisie/mustache](https://github.com/hoisie/mustache) however it's not a fork, rather a re-implementation with an improved API, support for `io.Writer` and `io.Reader` and parsing using a lexer and parser.
+It is inspired by [hoisie/mustache](https://github.com/hoisie/mustache) however it's not a fork, rather a re-implementation with improved spec conformance, a more flexible API (e.g. support for `io.Writer` and `io.Reader`).
 
-It is built using lexing techniques described in the slides on [lexical scanning in Go](http://rspace.googlecode.com/hg/slide/lex.html), and functional options as described in the blog post on [self-referential functions and the design of options](http://commandcenter.blogspot.nl/2014/01/self-referential-functions-and-design.html).
+It is built using lexing techniques described in the slides on [lexical scanning in Go](https://talks.golang.org/2011/lex.slide), and functional options as described in the blog post on [self-referential functions and the design of options](http://commandcenter.blogspot.nl/2014/01/self-referential-functions-and-design.html).
 
-This package aims to cover 100% of the mustache specification tests, however by the time of this writing it is not complete. For more information on mustache check the [official documentation](http://mustache.github.io/) and the [mustache spec](http://github.com/mustache/spec).
+This package aims to cover 100% of the mustache specification tests, however by the time of this writing it is not complete.
+
+For more information on mustache check the [official documentation](http://mustache.github.io/) and the [mustache spec](http://github.com/mustache/spec).
 
 # Installation
 
@@ -125,7 +127,7 @@ Run `go test` as usual. If you want to run the spec tests against this package, 
 
 Currently certain spec tests are skipped as they fail due to an issue with how standalone tags and empty lines are being handled. Inspecting them manually, one can see that the templates render correctly but with some additional `\n` which should have been omited. See issue [#1](http://github.com/alexkappa/mustache/issues/1).
 
-See [https://github.com/alexkappa/mustache/blob/master/SPEC.md](SPEC.md) for a breakdown of which spec tests pass and fail.
+See [SPEC.md](https://github.com/alexkappa/mustache/blob/master/SPEC.md) for a breakdown of which spec tests pass and fail.
 
 # Contributing
 
