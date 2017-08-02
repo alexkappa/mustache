@@ -176,7 +176,6 @@ func (l *lexer) token() token {
 			l.state = l.state(l)
 		}
 	}
-	panic("not reached")
 }
 
 func (l *lexer) String() string {

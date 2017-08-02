@@ -49,14 +49,11 @@ func (p *parser) readt(t tokenType) ([]token, error) {
 		tokens = append(tokens, token)
 		switch token.typ {
 		case tokenEOF:
-			return tokens, io.EOF
+			return tokens, fmt.Errorf("token %q not found", t)
 		case t:
 			return tokens, nil
-		default:
-			continue
 		}
 	}
-	return tokens, fmt.Errorf("token %q not found", t)
 }
 
 // readv returns the tokens starting from the current position until the first
@@ -122,10 +119,9 @@ func (p *parser) peekt(t tokenType) ([]token, error) {
 		case t:
 			return p.buf, nil
 		case tokenEOF:
-			break
+			return p.buf, io.EOF
 		}
 	}
-	return p.buf, io.EOF
 }
 
 func (p *parser) errorf(t token, format string, v ...interface{}) error {
