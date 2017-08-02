@@ -1,4 +1,4 @@
-box: golang
+box: golang:1.8
 build:
   steps:
     - wercker/setup-go-workspace:
@@ -16,17 +16,12 @@ build:
         code: |
           go test -coverprofile=coverage.out
     - script:
-        name: copy files
+        name: install node
         code: |
-          cp coverage.out $WERCKER_OUTPUT_DIR/
-send-coverage:
-  box: node
-  steps:
+          apt update -y
+          apt install -y node npm
+          npm install codeclimate-test-reporter
     - script:
-        name: install codeclimate test reporter
+        name: send coverage report
         code: |
-          npm install -g codeclimate-test-reporter
-    - script:
-        name: send coverage
-        code: |
-          CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN codeclimate-test-reporter < coverage.out                                                                                                   [17:29:49]
+          CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN nodejs node_modules/.bin/codeclimate-test-reporter < coverage.out
