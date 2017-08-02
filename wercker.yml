@@ -23,10 +23,6 @@ send-coverage:
   box: node
   steps:
     - script:
-        name: copy files
-        code: |
-          cp $WERCKER_SOURCE_DIR/coverage.out .
-    - script:
         name: install codeclimate test reporter
         code: |
           npm install -g codeclimate-test-reporter
