@@ -25,7 +25,7 @@ send-coverage:
     - script:
         name: copy files
         code: |
-          cp $WERCKER_OUTPUT_DIR/coverage.out .
+          cp $WERCKER_SOURCE_DIR/coverage.out .
     - script:
         name: install codeclimate test reporter
         code: |
