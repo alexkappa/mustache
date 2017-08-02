@@ -125,6 +125,8 @@ Run `go test` as usual. If you want to run the spec tests against this package, 
 
 Currently certain spec tests are skipped as they fail due to an issue with how standalone tags and empty lines are being handled. Inspecting them manually, one can see that the templates render correctly but with some additional `\n` which should have been omited. See issue [#1](http://github.com/alexkappa/mustache/issues/1).
 
+See [https://github.com/alexkappa/mustache/blob/master/SPEC.md](SPEC.md) for a breakdown of which spec tests pass and fail.
+
 # Contributing
 
 If you would like to contribute, head on to the [issues](https://github.com/alexkappa/mustache/issues) page for tasks that need help.
