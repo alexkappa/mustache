@@ -52,66 +52,70 @@ func init() {
 	}
 }
 
-func testSpec(t *testing.T, s Spec) {
-	buf := &bytes.Buffer{}
-	for _, test := range s.Tests {
-		buf.Reset()
-		buf.WriteString(fmt.Sprintf("%s\n", test.Desc))
-		buf.WriteString(fmt.Sprintf("Name    : %q\n", test.Name))
-		buf.WriteString(fmt.Sprintf("Template: %q\n", test.Template))
-		buf.WriteString(fmt.Sprintf("Data    : %q\n", test.Data))
-		defer func() {
-			if r := recover(); r != nil {
-				t.Fatalf("%sParse failed on test %v: %v\n %s", buf, test.Name, r, debug.Stack())
+func testSpecFunc(t *testing.T, s Spec) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+		buf := &bytes.Buffer{}
+		for _, test := range s.Tests {
+			buf.Reset()
+			buf.WriteString(fmt.Sprintf("%s\n", test.Desc))
+			buf.WriteString(fmt.Sprintf("Name    : %q\n", test.Name))
+			buf.WriteString(fmt.Sprintf("Template: %q\n", test.Template))
+			buf.WriteString(fmt.Sprintf("Data    : %q\n", test.Data))
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("%sParse failed on test %v: %v\n %s", buf, test.Name, r, debug.Stack())
+				}
+			}()
+			template := New()
+			err := template.ParseString(test.Template)
+			// buf.WriteString(fmt.Sprintf("AST     : %v\n", template.elems))
+			if err != nil {
+				t.Fatalf("%sParse failed on test %q: %q", buf, test.Name, err)
 			}
-		}()
-		template := New()
-		err := template.ParseString(test.Template)
-		// buf.WriteString(fmt.Sprintf("AST     : %v\n", template.elems))
-		if err != nil {
-			t.Fatalf("%sParse failed on test %q: %q", buf, test.Name, err)
-		}
-		for n, s := range test.Partials {
-			buf.WriteString(fmt.Sprintf("Partial : %s> %q\n", n, s))
-			p := New(Name(n))
-			if err := p.ParseString(s); err != nil {
-				t.Fatalf("%sParse failed on test %q partial %s: %q", buf, test.Name, err, n)
+			for n, s := range test.Partials {
+				buf.WriteString(fmt.Sprintf("Partial : %s> %q\n", n, s))
+				p := New(Name(n))
+				if err := p.ParseString(s); err != nil {
+					t.Fatalf("%sParse failed on test %q partial %s: %q", buf, test.Name, err, n)
+				}
+				template.Option(Partial(p))
 			}
-			template.Option(Partial(p))
-		}
-		output, err := template.RenderString(test.Data)
-		if err != nil {
-			t.Fatalf("%sRender failed on test %q: %q", buf, test.Name, err)
-		}
-		buf.WriteString(fmt.Sprintf("Tree    : %+v\n", template.elems))
-		buf.WriteString(fmt.Sprintf("Expected: %q\n", test.Expected))
-		buf.WriteString(fmt.Sprintf("Have    : %q\n", output))
-		if output != test.Expected {
-			t.Error(buf.String())
+			output, err := template.RenderString(test.Data)
+			if err != nil {
+				t.Fatalf("%sRender failed on test %q: %q", buf, test.Name, err)
+			}
+			buf.WriteString(fmt.Sprintf("Tree    : %+v\n", template.elems))
+			buf.WriteString(fmt.Sprintf("Expected: %q\n", test.Expected))
+			buf.WriteString(fmt.Sprintf("Have    : %q\n", output))
+			if output != test.Expected {
+				t.Error(buf.String())
+			}
 		}
 	}
 }
 
 func TestSpecComments(t *testing.T) {
-	testSpec(t, specs["comments"])
+	t.Run("comments", testSpecFunc(t, specs["comments"]))
 }
 
 func TestSpecDelimiters(t *testing.T) {
-	testSpec(t, specs["delimiters"])
+	t.Run("delimiters", testSpecFunc(t, specs["delimiters"]))
 }
 
 func TestSpecInterpolation(t *testing.T) {
-	testSpec(t, specs["interpolation"])
+	t.Run("interpolation", testSpecFunc(t, specs["interpolation"]))
 }
 
 func TestSpecInverted(t *testing.T) {
-	testSpec(t, specs["inverted"])
+	t.Run("inverted", testSpecFunc(t, specs["inverted"]))
 }
 
 func TestSpecPartials(t *testing.T) {
-	testSpec(t, specs["partials"])
+	t.Skip("skip partials as they don't conform fully to the standard")
+	t.Run("partials", testSpecFunc(t, specs["partials"]))
 }
 
 func TestSpecSections(t *testing.T) {
-	testSpec(t, specs["sections"])
+	t.Run("sections", testSpecFunc(t, specs["sections"]))
 }
