@@ -14,4 +14,15 @@ build:
     - script:
         name: go test
         code: |
-          go test
+          go test -coverprofile=coverage.out
+send-coverage:
+  box: node
+  steps:
+    - script:
+        name: install codeclimate test reporter
+        code: |
+          npm install -g codeclimate-test-reporter
+    - script:
+        name: send coverage
+        code: |
+          CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN codeclimate-test-reporter < coverage.out                                                                                                   [17:29:49]
