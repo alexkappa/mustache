@@ -82,7 +82,7 @@ func ExampleOption() {
 
 	template := New(
 		Delimiters("|", "|"), // set the mustache delimiters to | instead of {{
-		Errors(),             // return an error if a variable is missing
+		SilentMiss(false),    // return an error if a variable lookup fails
 		Partial(title),       // register a partial
 		Partial(body))        // and another one...
 

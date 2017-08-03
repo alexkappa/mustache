@@ -217,10 +217,20 @@ func Partial(p *Template) Option {
 	}
 }
 
-// Errors enables missing variable errors.
+// Errors enables missing variable errors. This option is deprecated. Please
+// use SilentMiss instead.
 func Errors() Option {
 	return func(t *Template) {
 		t.silentMiss = false
+	}
+}
+
+// SilentMiss sets the silent miss behavior of variable lookups when rendering.
+// If true, missed lookups will not produce any errors. Otherwise a missed
+// variable lookup will stop the rendering and return an error.
+func SilentMiss(silent bool) Option {
+	return func(t *Template) {
+		t.silentMiss = silent
 	}
 }
 

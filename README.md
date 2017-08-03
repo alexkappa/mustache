@@ -85,7 +85,7 @@ The options are:
 - `Name(n string) Option` sets the name of the template. This option is useful when using the template as a partial to another template.
 - `Delimiters(start, end string) Option` sets the start and end delimiters of the template.
 - `Partial(p *Template) Option` sets p as a partial to the template. It is important to set the name of p so that it may be looked up by the parent template.
-- `Errors() Option` enables missing variable errors.
+- `SilentMiss(silent bool) Option` sets missing variable lookup behaviour.
 
 Options can be defined either as arguments to [New](http://godoc.org/github.com/alexkappa/mustache#New) or using the [Option](http://godoc.org/github.com/alexkappa/mustache#Template.Option) function.
 
@@ -107,9 +107,9 @@ body.Option(Name("body"))
 body.ParseString("{{content}}")
 
 template := New(
-    Errors(),       // return an error if a variable is missing
-    Partial(title), // register a partial
-    Partial(body))  // and another one...
+    SilentMiss(false), // return an error if a variable lookup fails
+    Partial(title),    // register a partial
+    Partial(body))     // and another one...
 
 template.ParseString("{{>header}}\n{{>body}}")
 
