@@ -2,7 +2,7 @@ box: golang:1.8
 build:
   steps:
     - wercker/setup-go-workspace:
-        package-dir: github.com/alexkappa/exp
+        package-dir: github.com/alexkappa/mustache
     - script:
         name: update submodules
         code: |
