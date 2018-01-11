@@ -49,7 +49,10 @@ type varNode struct {
 
 func (n *varNode) render(t *Template, w *writer, c ...interface{}) error {
 	w.text()
-	if v, ok := lookup(n.name, c...); ok {
+	v, _ := lookup(n.name, c...)
+	// If the value is present but 'falsy', such as a false bool, or a zero int,
+	// we still want to render that value.
+	if v != nil {
 		if n.escape {
 			v = escape(fmt.Sprintf("%v", v))
 		}
