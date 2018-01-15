@@ -15,13 +15,8 @@ build:
         name: go test
         code: |
           go test -coverprofile=coverage.out
-    - script:
-        name: install node
-        code: |
-          apt update -y
-          apt install -y node npm
-          npm install codeclimate-test-reporter
-    - script:
-        name: send coverage report
-        code: |
-          CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN nodejs node_modules/.bin/codeclimate-test-reporter < coverage.out
+    - yieldr/test-reporter@0.4.2:
+        id: $CODECLIMATE_REPO_TOKEN
+        coverage-input-type: gocov
+        command: after-build
+        arguments: coverage.out
