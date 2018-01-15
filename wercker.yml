@@ -14,9 +14,6 @@ build:
     - script:
         name: go test
         code: |
-          go test -coverprofile=coverage.out
+          go test -coverprofile=c.out
     - yieldr/test-reporter@0.4.2:
         id: $CODECLIMATE_REPO_TOKEN
-        coverage-input-type: gocov
-        command: after-build
-        arguments: coverage.out
