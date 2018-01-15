@@ -33,6 +33,24 @@ func TestTemplate(t *testing.T) {
 	}
 }
 
+func TestFalsyTemplate(t *testing.T) {
+	input := strings.NewReader("some text {{^foo}}{{foo}}{{/foo}} {{bar}} here")
+	template := New()
+	err := template.Parse(input)
+	if err != nil {
+		t.Error(err)
+	}
+	var output bytes.Buffer
+	err = template.Render(&output, map[string]interface{}{"foo": 0, "bar": false})
+	if err != nil {
+		t.Error(err)
+	}
+	expected := "some text 0 false here"
+	if output.String() != expected {
+		t.Errorf("expected %q got %q", expected, output.String())
+	}
+}
+
 func TestParseTree(t *testing.T) {
 	template := New()
 	template.elems = []node{
