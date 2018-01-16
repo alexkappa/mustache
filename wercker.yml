@@ -15,5 +15,5 @@ build:
         name: go test
         code: |
           go test -coverprofile=c.out
-    - yieldr/test-reporter@0.5.0:
+    - yieldr/test-reporter:
         id: $CODECLIMATE_REPO_TOKEN
