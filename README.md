@@ -1,6 +1,9 @@
 # Mustache
 
-[![godoc reference](https://godoc.org/github.com/alexkappa/mustache?status.svg)](https://godoc.org/github.com/alexkappa/mustache) [![wercker status](https://app.wercker.com/status/37361276190f155a06df0c3f3e37a870/s/master "wercker status")](https://app.wercker.com/project/byKey/37361276190f155a06df0c3f3e37a870) [![Code Climate](https://codeclimate.com/github/alexkappa/mustache/badges/gpa.svg)](https://codeclimate.com/github/alexkappa/mustache)
+[![godoc reference](https://godoc.org/github.com/alexkappa/mustache?status.svg)](https://godoc.org/github.com/alexkappa/mustache)
+[![wercker status](https://app.wercker.com/status/37361276190f155a06df0c3f3e37a870/s/master "wercker status")](https://app.wercker.com/project/byKey/37361276190f155a06df0c3f3e37a870)
+[![Code Climate](https://codeclimate.com/github/alexkappa/mustache/badges/gpa.svg)](https://codeclimate.com/github/alexkappa/mustache)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/6cd9f358f3e851036c22/test_coverage)](https://codeclimate.com/github/alexkappa/mustache/test_coverage)
 
 This is an implementation of the mustache templating language in Go.
 
