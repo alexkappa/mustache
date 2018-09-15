@@ -67,7 +67,7 @@ t.Render(os.Stdout, nil)
 ### String
 
 ```Go
-t := mustahce.New()
+t := mustache.New()
 err := t.ParseString("Hello, {{subject}}!")
 if err != nil {
     // handle error
