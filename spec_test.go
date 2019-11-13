@@ -13,6 +13,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"testing"
+	"text/tabwriter"
 )
 
 const specDir = "./spec/specs"
@@ -52,70 +53,93 @@ func init() {
 	}
 }
 
+type testWriter struct {
+	b *bytes.Buffer
+	w *tabwriter.Writer
+}
+
+func newTestWriter() *testWriter {
+	t := &testWriter{}
+	t.b = bytes.NewBuffer(nil)
+	t.w = tabwriter.NewWriter(t.b, 0, 8, 0, ':', 0)
+	return t
+}
+
+func (t *testWriter) Write(buf []byte) (n int, err error) { return t.w.Write(buf) }
+func (t *testWriter) String() string                      { t.w.Flush(); return t.b.String() }
+func (t *testWriter) Reset()                              { t.w.Flush(); t.b.Reset() }
+
 func testSpecFunc(t *testing.T, s Spec) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Parallel()
-		buf := &bytes.Buffer{}
+
+		t.Parallel() // run each spec test concurrently.
+
+		// Create a new writer to write information about the test, and in
+		// the event the test fails we print it to the screen.
+		w := newTestWriter()
+
 		for _, test := range s.Tests {
-			buf.Reset()
-			buf.WriteString(fmt.Sprintf("%s\n", test.Desc))
-			buf.WriteString(fmt.Sprintf("Name    : %q\n", test.Name))
-			buf.WriteString(fmt.Sprintf("Template: %q\n", test.Template))
-			buf.WriteString(fmt.Sprintf("Data    : %q\n", test.Data))
+
+			fmt.Fprintf(w, "%s\n", test.Desc)
+			fmt.Fprintf(w, "Name: %q\n", test.Name)
+			fmt.Fprintf(w, "Template: %q\n", test.Template)
+			fmt.Fprintf(w, "Data: %q\n", test.Data)
+
+			// Handle and recover from panics.
 			defer func() {
 				if r := recover(); r != nil {
-					t.Fatalf("%sParse failed on test %v: %v\n %s", buf, test.Name, r, debug.Stack())
+					fmt.Fprintf(w, "Error: %v\n", r)
+					fmt.Fprintf(w, "Stack: %s\n", debug.Stack())
+					t.Fatal(w.String())
 				}
 			}()
+
+			defer w.Reset() // Reset writer after each test.
+
+			// Parse the template and report errors.
 			template := New()
-			err := template.ParseString(test.Template)
-			// buf.WriteString(fmt.Sprintf("AST     : %v\n", template.elems))
-			if err != nil {
-				t.Fatalf("%sParse failed on test %q: %q", buf, test.Name, err)
+			if err := template.ParseString(test.Template); err != nil {
+				fmt.Fprintf(w, "Error: %s\n", err)
+				t.Fatal(w.String())
 			}
+
+			// If partials were present in the spec test iterate and test each
+			// one.
 			for n, s := range test.Partials {
-				buf.WriteString(fmt.Sprintf("Partial : %s> %q\n", n, s))
+				fmt.Fprintf(w, "Partial : %s> %q\n", n, s)
 				p := New(Name(n))
 				if err := p.ParseString(s); err != nil {
-					t.Fatalf("%sParse failed on test %q partial %s: %q", buf, test.Name, err, n)
+					fmt.Fprintf(w, "Error: %s\n", err)
+					t.Fatal(w.String())
 				}
 				template.Option(Partial(p))
 			}
+
 			output, err := template.RenderString(test.Data)
 			if err != nil {
-				t.Fatalf("%sRender failed on test %q: %q", buf, test.Name, err)
+				fmt.Fprintf(w, "Error: %s\n", err)
+				t.Fatal(w.String())
 			}
-			buf.WriteString(fmt.Sprintf("Tree    : %+v\n", template.elems))
-			buf.WriteString(fmt.Sprintf("Expected: %q\n", test.Expected))
-			buf.WriteString(fmt.Sprintf("Have    : %q\n", output))
+
+			fmt.Fprintf(w, "Tree: %+v\n", template.elems)
+			fmt.Fprintf(w, "Expected: %q\n", test.Expected)
+			fmt.Fprintf(w, "Have: %q\n", output)
+
 			if output != test.Expected {
-				t.Error(buf.String())
+				t.Fatal(w.String())
 			}
 		}
 	}
 }
 
-func TestSpecComments(t *testing.T) {
-	t.Run("comments", testSpecFunc(t, specs["comments"]))
-}
-
-func TestSpecDelimiters(t *testing.T) {
-	t.Run("delimiters", testSpecFunc(t, specs["delimiters"]))
-}
-
-func TestSpecInterpolation(t *testing.T) {
-	t.Run("interpolation", testSpecFunc(t, specs["interpolation"]))
-}
-
-func TestSpecInverted(t *testing.T) {
-	t.Run("inverted", testSpecFunc(t, specs["inverted"]))
-}
-
-func TestSpecPartials(t *testing.T) {
-	t.Skip("skip partials as they don't conform fully to the standard")
-	t.Run("partials", testSpecFunc(t, specs["partials"]))
-}
-
-func TestSpecSections(t *testing.T) {
-	t.Run("sections", testSpecFunc(t, specs["sections"]))
+func TestSpec(t *testing.T) {
+	t.Run("Comments", testSpecFunc(t, specs["comments"]))
+	t.Run("Delimiters", testSpecFunc(t, specs["delimiters"]))
+	t.Run("Interpolation", testSpecFunc(t, specs["interpolation"]))
+	t.Run("Inverted", testSpecFunc(t, specs["inverted"]))
+	t.Run("Partials", func(t *testing.T) {
+		t.Skip("skip partials as they don't conform fully to the standard")
+		testSpecFunc(t, specs["partials"])(t)
+	})
+	t.Run("Sections", testSpecFunc(t, specs["sections"]))
 }
