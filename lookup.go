@@ -23,6 +23,35 @@ func lookupFieldInStruct(reflectValue reflect.Value, name string) (interface{}, 
 	return nil, false
 }
 
+func lookupReflectValue(name string, value reflect.Value) (interface{}, bool) {
+	if name == "." {
+		return value.Interface(), truth(value)
+	}
+	switch value.Kind() {
+	case reflect.Ptr:
+		return lookupReflectValue(name, value.Elem())
+	// If the current context is a map, we'll look for a key in that map
+	// that matches the name.
+	case reflect.Map:
+		item := value.MapIndex(reflect.ValueOf(name))
+		if item.IsValid() {
+			return item.Interface(), truth(item)
+		}
+	// If the current context is a struct, we'll look for a property in that
+	// struct that matches the name.
+	case reflect.Struct:
+		result, isTruth := lookupFieldInStruct(value, name)
+		if result != nil {
+			return result, isTruth
+		}
+		result, isTruth = lookupFieldInStruct(value, toCamelCase(name))
+		if result != nil {
+			return result, isTruth
+		}
+	}
+	return nil, false
+}
+
 // The lookup function searches for a property that matches name within the
 // context chain. We first start from the first item in the context chain which
 // is the most likely to have the value we're looking for. If not found, we'll
@@ -42,29 +71,9 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 	for _, c := range context {
 		// Reflect on the value of the current context.
 		reflectValue := reflect.ValueOf(c)
-		// If the name is ".", we should return the whole context as-is.
-		if name == "." {
-			return c, truth(reflectValue)
-		}
-		switch reflectValue.Kind() {
-		// If the current context is a map, we'll look for a key in that map
-		// that matches the name.
-		case reflect.Map:
-			item := reflectValue.MapIndex(reflect.ValueOf(name))
-			if item.IsValid() {
-				return item.Interface(), truth(item)
-			}
-		// If the current context is a struct, we'll look for a property in that
-		// struct that matches the name.
-		case reflect.Struct:
-			result, isTruth := lookupFieldInStruct(reflectValue, name)
-			if result != nil {
-				return result, isTruth
-			}
-			result, isTruth = lookupFieldInStruct(reflectValue, toCamelCase(name))
-			if result != nil {
-				return result, isTruth
-			}
+		result, isTruth := lookupReflectValue(name, reflectValue)
+		if result != nil {
+			return result, isTruth
 		}
 		// If by this point no value was matched, we'll move up a step in the
 		// chain and try to match a value there.
