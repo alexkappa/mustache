@@ -8,6 +8,21 @@ import (
 	"strings"
 )
 
+// lookupFieldInStruct try to look a field in reflect struct. Returns nil when
+// there is no field or method is that `name`.
+func lookupFieldInStruct(reflectValue reflect.Value, name string) (interface{}, bool) {
+	field := reflectValue.FieldByName(name)
+	if field.IsValid() {
+		return field.Interface(), truth(field)
+	}
+	method := reflectValue.MethodByName(name)
+	if method.IsValid() && method.Type().NumIn() == 1 {
+		out := method.Call(nil)[0]
+		return out.Interface(), truth(out)
+	}
+	return nil, false
+}
+
 // The lookup function searches for a property that matches name within the
 // context chain. We first start from the first item in the context chain which
 // is the most likely to have the value we're looking for. If not found, we'll
@@ -40,20 +55,16 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 				return item.Interface(), truth(item)
 			}
 		// If the current context is a struct, we'll look for a property in that
-		// struct that matches the name. In the near future I'd like to add
-		// support for matching struct names to tags so we can use lower_case
-		// names in our templates which makes it more mustache like.
+		// struct that matches the name.
 		case reflect.Struct:
-			field := reflectValue.FieldByName(name)
-			if field.IsValid() {
-				return field.Interface(), truth(field)
+			result, isTruth := lookupFieldInStruct(reflectValue, name)
+			if result != nil {
+				return result, isTruth
 			}
-			method := reflectValue.MethodByName(name)
-			if method.IsValid() && method.Type().NumIn() == 1 {
-				out := method.Call(nil)[0]
-				return out.Interface(), truth(out)
+			result, isTruth = lookupFieldInStruct(reflectValue, toCamelCase(name))
+			if result != nil {
+				return result, isTruth
 			}
-
 		}
 		// If by this point no value was matched, we'll move up a step in the
 		// chain and try to match a value there.

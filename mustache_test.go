@@ -87,3 +87,27 @@ func TestParseTree(t *testing.T) {
 		t.Log(b.String())
 	}
 }
+
+func TestSnakeCase(t *testing.T) {
+	tmpl := New(SilentMiss(false))
+	err := tmpl.ParseString("{{test_snake_case}} {{foo}} {{Bar}}")
+	if err != nil {
+		t.Error(err)
+	}
+	type Args struct {
+		TestSnakeCase string
+		Foo           string
+		Bar           string
+	}
+	str, err := tmpl.RenderString(Args{
+		TestSnakeCase: "a",
+		Foo:           "b",
+		Bar:           "c",
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	if str != "a b c" {
+		t.Errorf("expected %s got %s", "a b c", str)
+	}
+}
