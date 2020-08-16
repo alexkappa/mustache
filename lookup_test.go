@@ -24,6 +24,18 @@ func TestSimpleLookup(t *testing.T) {
 				"map": map[string]interface{}{
 					"in": "I'm nested!",
 				},
+				"ptr": &struct {
+					Foo *struct{ Bar string }
+				}{
+					Foo: &struct{ Bar string }{
+						Bar: "bar",
+					},
+				},
+				"tag": &struct {
+					Foo string `mustache:"foo"`
+				}{
+					Foo: "foo",
+				},
 			},
 			assertions: []struct {
 				name  string
@@ -34,6 +46,8 @@ func TestSimpleLookup(t *testing.T) {
 				{"string", "abc", true},
 				{"boolean", true, true},
 				{"map.in", "I'm nested!", true},
+				{"ptr.Foo.Bar", "bar", true},
+				{"tag.foo", "foo", true},
 			},
 		},
 		{
