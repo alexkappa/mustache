@@ -43,23 +43,35 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 		// struct that matches the name. In the near future I'd like to add
 		// support for matching struct names to tags so we can use lower_case
 		// names in our templates which makes it more mustache like.
+		case reflect.Ptr:
+			reflectValue = reflectValue.Elem()
+			fallthrough
 		case reflect.Struct:
-			field := reflectValue.FieldByName(name)
-			if field.IsValid() {
-				return field.Interface(), truth(field)
+			result, isTrue := lookupStructByName(reflectValue, name)
+			if result != nil {
+				return result, isTrue
 			}
-			method := reflectValue.MethodByName(name)
-			if method.IsValid() && method.Type().NumIn() == 1 {
-				out := method.Call(nil)[0]
-				return out.Interface(), truth(out)
-			}
-
 		}
 		// If by this point no value was matched, we'll move up a step in the
 		// chain and try to match a value there.
 	}
 	// We've exhausted the whole context chain and found nothing. Return a nil
 	// value and a negative truth.
+	return nil, false
+}
+
+// lookupStructByName will return the field or the method result with the given name.
+// Returns nil, false if no such field or method.
+func lookupStructByName(reflectValue reflect.Value, name string) (interface{}, bool) {
+	field := reflectValue.FieldByName(name)
+	if field.IsValid() {
+		return field.Interface(), truth(field)
+	}
+	method := reflectValue.MethodByName(name)
+	if method.IsValid() && method.Type().NumIn() == 1 {
+		out := method.Call(nil)[0]
+		return out.Interface(), truth(out)
+	}
 	return nil, false
 }
 
