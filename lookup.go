@@ -40,9 +40,8 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 				return item.Interface(), truth(item)
 			}
 		// If the current context is a struct, we'll look for a property in that
-		// struct that matches the name. In the near future I'd like to add
-		// support for matching struct names to tags so we can use lower_case
-		// names in our templates which makes it more mustache like.
+		// struct that matches the name.
+		// Support struct field tags, like `mustache:"foo_bar"`
 		case reflect.Ptr:
 			reflectValue = reflectValue.Elem()
 			fallthrough
@@ -60,6 +59,8 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 	return nil, false
 }
 
+const kLookupTagKey = "mustache"
+
 // lookupStructByName will return the field or the method result with the given name.
 // Returns nil, false if no such field or method.
 func lookupStructByName(reflectValue reflect.Value, name string) (interface{}, bool) {
@@ -72,6 +73,25 @@ func lookupStructByName(reflectValue reflect.Value, name string) (interface{}, b
 		out := method.Call(nil)[0]
 		return out.Interface(), truth(out)
 	}
+
+	for i := 0; i < reflectValue.NumField(); i++ {
+		tag := reflectValue.Type().Field(i).Tag
+		val, ok := tag.Lookup(kLookupTagKey)
+		if !ok {
+			continue
+		}
+		// NOTE: Is there any option we need to add?
+		// Just treat all tag value as the symbol name for now.
+		if val != name {
+			continue
+		}
+		field := reflectValue.Field(i)
+		if !field.IsValid() {
+			continue
+		}
+		return field.Interface(), truth(field)
+	}
+
 	return nil, false
 }
 

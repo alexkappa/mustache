@@ -31,6 +31,11 @@ func TestSimpleLookup(t *testing.T) {
 						Bar: "bar",
 					},
 				},
+				"tag": &struct {
+					Foo string `mustache:"foo"`
+				}{
+					Foo: "foo",
+				},
 			},
 			assertions: []struct {
 				name  string
@@ -42,6 +47,7 @@ func TestSimpleLookup(t *testing.T) {
 				{"boolean", true, true},
 				{"map.in", "I'm nested!", true},
 				{"ptr.Foo.Bar", "bar", true},
+				{"tag.foo", "foo", true},
 			},
 		},
 		{
