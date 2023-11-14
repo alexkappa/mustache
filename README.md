@@ -1,8 +1,7 @@
 # Mustache
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/alexkappa/mustache.svg)](https://pkg.go.dev/github.com/alexkappa/mustache)
-
-![](https://github.com/alexkappa/mustache/actions/workflows/go.yml/badge.svg)
+[![Go Build](https://github.com/alexkappa/mustache/actions/workflows/go.yml/badge.svg)](https://github.com/alexkappa/mustache/actions/workflows/go.yml)
 
 This is an implementation of the mustache templating language in Go.
 
