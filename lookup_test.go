@@ -56,6 +56,33 @@ func TestSimpleLookup(t *testing.T) {
 				{"Nested.Inside", "I'm nested!", true},
 			},
 		},
+		{
+			context: struct {
+				Integer int    `template:"int"`
+				String  string `template:"str"`
+				Boolean bool   `template:"bool"`
+				Nested  struct {
+					Inside string `template:"inside"`
+				} `template:"nested"`
+			}{
+				Integer: 123,
+				String:  "abc",
+				Boolean: true,
+				Nested: struct {
+					Inside string `template:"inside"`
+				}{"I'm nested!"},
+			},
+			assertions: []struct {
+				name  string
+				value interface{}
+				truth bool
+			}{
+				{"int", 123, true},
+				{"str", "abc", true},
+				{"bool", true, true},
+				{"nested.inside", "I'm nested!", true},
+			},
+		},
 	} {
 		for _, assertion := range test.assertions {
 			value, truth := lookup(assertion.name, test.context)

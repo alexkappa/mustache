@@ -25,8 +25,9 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 	}
 	// Iterate over the context chain and try to match the name to a value.
 	for _, c := range context {
-		// Reflect on the value of the current context.
+		// Reflect on the value and type of the current context.
 		reflectValue := reflect.ValueOf(c)
+		reflectType := reflect.TypeOf(c)
 		// If the name is ".", we should return the whole context as-is.
 		if name == "." {
 			return c, truth(reflectValue)
@@ -35,6 +36,10 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 		// If the current context is a map, we'll look for a key in that map
 		// that matches the name.
 		case reflect.Map:
+			// Try to match a map key to the name. For example:
+			//
+			// 	m := map[string]string{"foo": "bar"}
+			//  mustache.Render("{{foo}}", m)
 			item := reflectValue.MapIndex(reflect.ValueOf(name))
 			if item.IsValid() {
 				return item.Interface(), truth(item)
@@ -44,16 +49,45 @@ func lookup(name string, context ...interface{}) (interface{}, bool) {
 		// support for matching struct names to tags so we can use lower_case
 		// names in our templates which makes it more mustache like.
 		case reflect.Struct:
+			// First we'll try to match a field. For example:
+			//
+			// 	type Foo struct { Bar string }
+			//  ctx := &Foo{"baz"}
+			//  mustache.Render("{{Bar}}", ctx)
 			field := reflectValue.FieldByName(name)
 			if field.IsValid() {
 				return field.Interface(), truth(field)
 			}
+			// If no field was matched, we'll try to match a method. This is
+			// useful for methods that return a value. For example:
+			//
+			// 	type Foo struct { bar string }
+			// 	func (f *Foo) Bar() string { return f.bar }
+			//  ctx := &Foo{"baz"}
+			//  mustache.Render("{{Bar}}", ctx)
+			//
 			method := reflectValue.MethodByName(name)
 			if method.IsValid() && method.Type().NumIn() == 1 {
 				out := method.Call(nil)[0]
 				return out.Interface(), truth(out)
 			}
-
+			// If no method was matched, we'll try to match a tag. This is
+			// useful for matching fields that have a different name than the
+			// one we want to use in our templates. For example:
+			//
+			// 	type Foo struct {
+			// 		Bar string `template:"baz"`
+			// 	}
+			//  ctx := &Foo{"qux"}
+			//  mustache.Render("{{baz}}", ctx)
+			//
+			for i := 0; i < reflectValue.NumField(); i++ {
+				field := reflectValue.Field(i)
+				tag := reflectType.Field(i).Tag.Get("template")
+				if tag == name {
+					return field.Interface(), truth(field)
+				}
+			}
 		}
 		// If by this point no value was matched, we'll move up a step in the
 		// chain and try to match a value there.
