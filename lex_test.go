@@ -27,7 +27,7 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
-			"\nfoo {{bar}} baz {{=| |=}}\r\n |foo| |={{ }}=| {{bar}}",
+			"\nfoo {{bar}} baz {{=| |=}}\r\n |foo| |={{! !}}=| {{!bar!}}",
 			[]token{
 				{typ: tokenText, val: "\nfoo "},
 				{typ: tokenLeftDelim, val: "{{"},
@@ -42,9 +42,9 @@ func TestLexer(t *testing.T) {
 				{typ: tokenText, val: " "},
 				{typ: tokenSetDelim},
 				{typ: tokenText, val: " "},
-				{typ: tokenLeftDelim, val: "{{"},
+				{typ: tokenLeftDelim, val: "{{!"},
 				{typ: tokenIdentifier, val: "bar"},
-				{typ: tokenRightDelim, val: "}}"},
+				{typ: tokenRightDelim, val: "!}}"},
 				{typ: tokenEOF},
 			},
 		},

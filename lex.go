@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -30,7 +29,7 @@ type tokenType int
 const (
 	tokenError tokenType = iota // error occurred; value is text of error
 	tokenEOF
-	tokenIdentifier     // alphanumeric identifier
+	tokenIdentifier     // tag identifier: non-whitespace characters NOT containing closing delimiter
 	tokenLeftDelim      // {{ left action delimiter
 	tokenRightDelim     // }} right action delimiter
 	tokenText           // plain text
@@ -279,24 +278,24 @@ func stateTag(l *lexer) stateFn {
 		l.emit(tokenPartial)
 	case r == '{':
 		l.emit(tokenRawStart)
-	case alphanum(r):
+	default:
 		l.backup()
 		return stateIdent
-	default:
-		return l.errorf("unrecognized character in action: %#U", r)
 	}
 	return stateTag
 }
 
-// stateIdent scans an alphanumeric or field.
+// stateIdent scans an partial tag or field.
 func stateIdent(l *lexer) stateFn {
 Loop:
 	for {
-		switch r := l.next(); {
-		case alphanum(r):
-			// absorb.
+		switch r := l.peek(); {
+		case r == eof:
+			return l.errorf("unclosed tag")
+		case !whitespace(r) && !strings.HasPrefix(l.input[l.pos:], l.rightDelim):
+			// absorb
+			l.next()
 		default:
-			l.backup()
 			l.emit(tokenIdentifier)
 			break Loop
 		}
@@ -364,9 +363,4 @@ func whitespace(r rune) bool {
 		return true
 	}
 	return false
-}
-
-// alphanum reports whether r is an alphabetic, digit, or underscore.
-func alphanum(r rune) bool {
-	return r == '_' || r == '.' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }
