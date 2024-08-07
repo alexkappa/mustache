@@ -4,6 +4,7 @@ package mustache
 
 import (
 	"bytes"
+	"os"
 	"strings"
 
 	"testing"
@@ -67,7 +68,7 @@ func TestParseTree(t *testing.T) {
 	b := bytes.NewBuffer(nil)
 	w := newWriter(b)
 	for _, e := range template.elems {
-		err := e.render(template, w, data)
+		err := e.render(template, w, map[node]struct{}{}, data)
 		if err != nil {
 			t.Error(err)
 		}
@@ -227,4 +228,29 @@ func TestSectionTestValue(t *testing.T) {
 
 	}
 
+}
+
+func TestInvalidGraph(t *testing.T) {
+	template := New(Errors())
+	template.name = "Partial"
+	p := &partialNode{name: "Partial"}
+	template.elems = append(template.elems, p)
+	template.partials[template.name] = template
+
+	recursiveErr := template.Render(os.Stdout, nil)
+	if recursiveErr == nil {
+		t.Error("Partial should've encountered an endless loop bug")
+	}
+}
+
+func TestValidGraph(t *testing.T) {
+	template := New(Errors())
+	template.name = "Partial"
+	p := &partialNode{name: "Partial"}
+	template.elems = append(template.elems, p, p, p)
+
+	recursiveErr := template.Render(os.Stdout, nil)
+	if recursiveErr != nil {
+		t.Error("Partial shouldn't have encountered an endless loop bug")
+	}
 }
